@@ -1,0 +1,8 @@
+bin/
+pkg/
+vendor/
+website/build
+crash.log
+.env
+.DS_Store
+*.swp
