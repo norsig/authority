@@ -1,0 +1,6 @@
+dependencies:
+  override:
+    - make updatedeps
+test:
+  override:
+    - make test

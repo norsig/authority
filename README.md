@@ -1,4 +1,4 @@
-# authority  [ ![Download](https://api.bintray.com/packages/ovrclk/pkgs/authority/images/download.svg) ](https://bintray.com/ovrclk/pkgs/authority/_latestVersion)
+# authority  [![Circle CI](https://circleci.com/gh/ovrclk/authority.svg?style=svg&circle-token=f69ab359eeea3f0c3c28624267062fbd11f1819f)](https://circleci.com/gh/ovrclk/authority) [ ![Download](https://api.bintray.com/packages/ovrclk/pkgs/authority/images/download.svg) ](https://bintray.com/ovrclk/pkgs/authority/_latestVersion) 
 
 Authority is tool for provisioning x509 certificates. Authority requires a [Vault](https://www.vaultproject.io) server backend.
 
