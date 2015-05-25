@@ -60,31 +60,27 @@ Install the appropriate package and follow the below to get started
 
 ```
 $ authority --help
-Usage: authority server [--config=<config>]
-       authority (get|revoke) <name> [--server=<server>] [--strict]
-       authority ca [--server=<server>]
+Usage: authority config [<configfile>] [--server=SERVER --token=TOKEN]
+       authority (generate|get|revoke) <name> [--server=SERVER --token=TOKEN]
+       authority ca [--server=SERVER --token=TOKEN]
 
 Authority is a server providing x509 certificate management
 
 Commands:
 
-    server     Run an authority server
-    get        Get (after potentially generating) a signed certificate
+    config     Display or set authority configuration
+    generate   Generate a signed client certificate and access token
+    get        Get a signed client certificate
     revoke     Revoke an existing signed client certificate
     ca         Get certificate authority files
 
 Options:
 
-  --config     Config file for authority server (AUTHORITY_CONFIG)
-               [default: /etc/authority.conf]
-  --server     Address of authority server (AUTHORITY_SERVER)
-               [default: localhost:8200]
-  --strict     Fail if the certificate doesn't already exist
-  -h, --help   Display this message
-  --version    Show version and exit
-
-You can override config file values for the Vault backend with the following
-environment variables: AUTHORITY_VAULT_SERVER and AUTHORITY_VAULT_TOKEN
+  --server=SERVER   Address of authority server (AUTHORITY_VAULT_SERVER)
+                    [default: https://localhost:8200]
+  --token=TOKEN     Vault access token (AUTHORITY_VAULT_TOKEN)
+  --help            Display this message
+  --version         Show version and exit
 ```
 
 ## Development
@@ -115,3 +111,4 @@ $ bin/authority
 ## Installation
 
 Find the appropriate package from http://dl.bintray.com/ovrclk/pkgs and place it under directory that is available in your `$PATH`, usually `/usr/local/bin`
+
