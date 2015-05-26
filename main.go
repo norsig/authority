@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	Version           = "0.2.1"
+	Version           = "0.2.2"
 	VersionPrerelease = "dev"
 
 	DEFAULT_VAULT_SERVER = "https://localhost:8200"
@@ -54,6 +54,11 @@ func main() {
 		name = args["<name>"].(string)
 	}
 
+	ca := args["ca"].(bool)
+	cert := args["cert"].(bool)
+	key := args["key"].(bool)
+	crl := args["crl"].(bool)
+
 	// skip failing config load if we're specifically running the config command
 	ignoreConfig := args["config"].(bool)
 
@@ -68,11 +73,11 @@ func main() {
 		} else if args["generate"].(bool) {
 			err = client.Generate(name)
 		} else if args["get"].(bool) {
-			err = client.Get(name)
+			err = client.Get(name, ca, cert, key)
 		} else if args["revoke"].(bool) {
 			err = client.Revoke(name)
 		} else if args["ca"].(bool) {
-			err = client.CA()
+			err = client.CA(cert, key, crl)
 		}
 		if err != nil {
 			log.Println("error:", err)
@@ -83,8 +88,9 @@ func main() {
 
 const helpText = `
 Usage: authority config [<configfile>] [--server=SERVER --token=TOKEN]
-       authority (generate|get|revoke) <name> [--server=SERVER --token=TOKEN]
-       authority ca [--server=SERVER --token=TOKEN]
+       authority (generate|revoke) <name> [--server=SERVER --token=TOKEN]
+       authority get [ca|cert|key]  <name> [--server=SERVER --token=TOKEN]
+       authority ca [cert|key|crl] [--server=SERVER --token=TOKEN]
 
 Authority is a server providing x509 certificate management
 

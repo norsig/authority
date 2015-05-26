@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/ovrclk/authority/backend"
 )
@@ -15,15 +16,18 @@ type Client struct {
 	Server string
 	Token  string
 
-	config   *Config
-	backend  backend.Backend
-	user     *user.User
-	baseDir  string
-	certsDir string
-	keysDir  string
+	config          *Config
+	backend         backend.Backend
+	user            *user.User
+	baseDir         string
+	certsDir        string
+	keysDir         string
+	restrictedNames []string
 }
 
 func (c *Client) Init(ignoreConfig bool) error {
+	c.restrictedNames = []string{"ca", "cert", "config", "crl", "generate", "get", "key", "revoke"}
+
 	c.user, _ = user.Current()
 
 	c.baseDir = filepath.Join(c.user.HomeDir, ".authority")
@@ -90,6 +94,10 @@ func (c *Client) Config(config string) error {
 }
 
 func (c *Client) Generate(name string) error {
+	if !c.nameIsValid(name) {
+		return fmt.Errorf("%s is a restricted name", name)
+	}
+
 	cert := &Cert{
 		CommonName: name,
 		Backend:    c.backend,
@@ -111,7 +119,7 @@ func (c *Client) Generate(name string) error {
 	return nil
 }
 
-func (c *Client) Get(name string) error {
+func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) error {
 	ca := GetCA(c.backend, c.config)
 
 	cert := &Cert{
@@ -127,24 +135,40 @@ func (c *Client) Get(name string) error {
 	var err error
 
 	caCert := CertificatePEM(ca.GetCertificate())
-	err = c.writeFile(filepath.Join(c.certsDir, "ca.crt"), caCert)
-	if err != nil {
-		return err
+	if printCA {
+		fmt.Println(caCert)
+		return nil
+	} else {
+		err = c.writeFile(filepath.Join(c.certsDir, "ca.crt"), caCert)
+		if err != nil {
+			return err
+		}
 	}
 
 	certCert := CertificatePEM(cert.GetCertificate())
-	err = c.writeFile(filepath.Join(c.certsDir, fmt.Sprintf("%s.crt", name)), certCert)
-	if err != nil {
-		return err
+	if printCert {
+		fmt.Println(certCert)
+		return nil
+	} else {
+		err = c.writeFile(filepath.Join(c.certsDir, fmt.Sprintf("%s.crt", name)), certCert)
+		if err != nil {
+			return err
+		}
 	}
 
 	key := cert.GetPrivateKey()
 	if key == nil {
 		return fmt.Errorf("can't read private key!")
 	}
-	err = c.writeFile(filepath.Join(c.keysDir, fmt.Sprintf("%s.key", name)), PrivateKeyPEM(key))
-	if err != nil {
-		return err
+
+	if printKey {
+		fmt.Println(PrivateKeyPEM(key))
+		return nil
+	} else {
+		err = c.writeFile(filepath.Join(c.keysDir, fmt.Sprintf("%s.key", name)), PrivateKeyPEM(key))
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Println("certificate", name, "stored")
@@ -175,30 +199,48 @@ func (c *Client) Revoke(name string) error {
 	return nil
 }
 
-func (c *Client) CA() error {
+func (c *Client) CA(printCert bool, printKey bool, printCRL bool) error {
 	ca := GetCA(c.backend, c.config)
 
 	var err error
 
 	cert := CertificatePEM(ca.GetCertificate())
-	err = c.writeFile(filepath.Join(c.certsDir, "ca.crt"), cert)
-	if err != nil {
-		return err
+	if printCert {
+		fmt.Println(cert)
+		return nil
+	} else {
+		err = c.writeFile(filepath.Join(c.certsDir, "ca.crt"), cert)
+		if err != nil {
+			return err
+		}
 	}
 
 	key := ca.GetPrivateKey()
 	if key == nil {
 		return fmt.Errorf("can't read private key!")
 	}
-	err = c.writeFile(filepath.Join(c.keysDir, "ca.key"), PrivateKeyPEM(key))
-	if err != nil {
-		return err
+
+	if printKey {
+		fmt.Println(PrivateKeyPEM(key))
+		return nil
+	} else {
+		err = c.writeFile(filepath.Join(c.keysDir, "ca.key"), PrivateKeyPEM(key))
+		if err != nil {
+			return err
+		}
 	}
 
 	crl := ca.GetCRLRaw()
-	err = c.writeRawFile(filepath.Join(c.baseDir, "crl.crl"), crl)
-	if err != nil {
-		return err
+	if printCRL {
+		f := os.Stdout
+		f.Write(crl)
+		f.Close()
+		return nil
+	} else {
+		err = c.writeRawFile(filepath.Join(c.baseDir, "crl.crl"), crl)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Println("certificate authority information stored")
@@ -222,4 +264,14 @@ func (c *Client) writeFile(path string, data string) error {
 	}
 	_, err = fileOut.WriteString(data)
 	return err
+}
+
+func (c *Client) nameIsValid(name string) bool {
+	toCheck := strings.ToLower(name)
+	for _, rn := range c.restrictedNames {
+		if rn == toCheck {
+			return false
+		}
+	}
+	return true
 }
