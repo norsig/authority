@@ -42,6 +42,17 @@ Install the appropriate package and follow the below to get started
   2015/05/22 22:03:31 certificate myclient stored
   ```
 
+  Alternatively you can output the cert, key, CA cert, or CRL to stdout, i.e.:
+
+  ```
+  $ AUTHORITY_VAULT_TOKEN=cb88a027-6c13-816d-0031-3ffb2a61080f authority get myclient cert
+-----BEGIN CERTIFICATE-----
+MIIDQDCCAiqgAwIBAgIBAjALBgkqhkiG9w0BAQswYzEQMA4GA1UEBhMHQ291bnRy
+....
+GfwyBOiYDpd6FJXBaJBmXGYy8FM=
+-----END CERTIFICATE-----
+  ```
+
 6. Revoke a client certificate
 
   ```
@@ -61,8 +72,9 @@ Install the appropriate package and follow the below to get started
 ```
 $ authority --help
 Usage: authority config [<configfile>] [--server=SERVER --token=TOKEN]
-       authority (generate|get|revoke) <name> [--server=SERVER --token=TOKEN]
-       authority ca [--server=SERVER --token=TOKEN]
+       authority (generate|revoke) <name> [--server=SERVER --token=TOKEN]
+       authority get [ca|cert|key]  <name> [--server=SERVER --token=TOKEN]
+       authority ca [cert|key|crl] [--server=SERVER --token=TOKEN]
 
 Authority is a server providing x509 certificate management
 
