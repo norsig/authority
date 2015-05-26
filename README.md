@@ -45,7 +45,7 @@ Install the appropriate package and follow the below to get started
   Alternatively you can output the cert, key, CA cert, or CRL to stdout, i.e.:
 
   ```
-  $ AUTHORITY_VAULT_TOKEN=cb88a027-6c13-816d-0031-3ffb2a61080f authority get myclient cert
+  $ AUTHORITY_VAULT_TOKEN=cb88a027-6c13-816d-0031-3ffb2a61080f authority get cert myclient
 -----BEGIN CERTIFICATE-----
 MIIDQDCCAiqgAwIBAgIBAjALBgkqhkiG9w0BAQswYzEQMA4GA1UEBhMHQ291bnRy
 ....
