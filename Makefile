@@ -1,26 +1,18 @@
 PROGRAM = "authority"
 PREFIX  = "bin"
-TEST    ?=./...
-TESTARGS ?= -v -race --timeout=40s --parallel=4
 
 default: build test
 
 build: generate
-	@sh -c "'$(CURDIR)/scripts/build.sh'"
-
-distribute: generate
-	@AUT_DISTRIBUTE=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+	@godep go build -o $(PREFIX)/$(PROGRAM)
 
 test: generate
-	go test $(TEST) $(TESTARGS) 
+	@godep go test -v ./... -race --timeout=40s
 
 generate:
-	go generate ./...
+	@godep go generate ./...
 
-updatedeps:
-	go get github.com/docopt/docopt-go
-	go get github.com/mitchellh/gox
-	go get github.com/hashicorp/vault
-	go get -t -d -v ./...
+clean:
+	@rm -rf bin/*
 
-.PHONY: default updatedeps generate test build distribute
+.PHONY: default build generate test clean
