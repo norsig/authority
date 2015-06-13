@@ -1,6 +1,15 @@
 dependencies:
   override:
-    - make updatedeps
+    - go get github.com/tools/godep
+    - make build
+
 test:
   override:
     - make test
+
+deployment:
+  output_bin:
+    branch: /.*/
+    commands:
+      - go get github.com/mitchellh/gox
+      - gox -os="!plan9" -output="$CIRCLE_ARTIFACTS/pkg/{{.OS}}_{{.Arch}}/{{.Dir}}" .
