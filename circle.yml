@@ -3,11 +3,10 @@ dependencies:
     - go get github.com/tools/godep
   override:
     - echo "skipping default build"
-  post:
-    - make build
 
 test:
   override:
+    - make build
     - make test
 
 deployment:
