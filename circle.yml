@@ -3,7 +3,7 @@ dependencies:
     - go get github.com/tools/godep
   override:
     - mkdir -p ~/.go_workspace/src/github.com/ovrclk
-    - cd ~; mv ~/authority ~/.go_workspace/src/github.com/ovrclk/authority
+    - cd ~; mv -f ~/authority ~/.go_workspace/src/github.com/ovrclk/authority
 
 test:
   override:
