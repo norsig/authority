@@ -2,10 +2,12 @@ dependencies:
   pre:
     - go get github.com/tools/godep
   override:
-    - echo "skipping default build"
+    - mkdir -p ~/.go_workspace/src/github.com/ovrclk
+    - mv authority ~/.go_workspace/src/github.com/ovrclk/authority
 
 test:
   override:
+    - cd ~/.go_workspace/src/github.com/ovrclk/authority
     - make build
     - make test
 
@@ -14,4 +16,5 @@ deployment:
     branch: /.*/
     commands:
       - go get github.com/mitchellh/gox
+      - cd ~/.go_workspace/src/github.com/ovrclk/authority
       - gox -os="!plan9" -output="$CIRCLE_ARTIFACTS/pkg/{{.OS}}_{{.Arch}}/{{.Dir}}" .
