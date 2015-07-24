@@ -16,8 +16,8 @@ type Client struct {
 	Server string
 	Token  string
 
-	config          *Config
-	backend         backend.Backend
+	Cfg             *Config
+	Backend         backend.Backend
 	user            *user.User
 	baseDir         string
 	certsDir        string
@@ -42,12 +42,12 @@ func (c *Client) Init(ignoreConfig bool) error {
 		}
 	}
 
-	c.backend = backend.Backend(&backend.Vault{
+	c.Backend = backend.Backend(&backend.Vault{
 		Server: c.Server,
 		Token:  c.Token,
 	})
 
-	if err := c.backend.Connect(); err != nil {
+	if err := c.Backend.Connect(); err != nil {
 		log.Fatal("Can't connect to backend", err)
 		return err
 	}
@@ -61,11 +61,11 @@ func (c *Client) Init(ignoreConfig bool) error {
 
 func (c *Client) loadConfig() error {
 	var err error
-	cfg, err := c.backend.GetConfig()
+	cfg, err := c.Backend.GetConfig()
 	if err != nil {
 		return err
 	} else {
-		c.config, err = OpenConfig(cfg)
+		c.Cfg, err = OpenConfig(cfg)
 	}
 
 	return nil
@@ -73,7 +73,7 @@ func (c *Client) loadConfig() error {
 
 func (c *Client) Config(config string) error {
 	if config == "" {
-		cfg, err := c.backend.GetConfig()
+		cfg, err := c.Backend.GetConfig()
 		if err != nil {
 			log.Println(err)
 		} else {
@@ -84,7 +84,7 @@ func (c *Client) Config(config string) error {
 		if err != nil {
 			return fmt.Errorf("can't load configuration file: %s", config)
 		}
-		err = c.backend.PutConfig(string(data))
+		err = c.Backend.PutConfig(string(data))
 		if err != nil {
 			return fmt.Errorf("can't store configuration")
 		}
@@ -100,8 +100,8 @@ func (c *Client) Generate(name string) error {
 
 	cert := &Cert{
 		CommonName: name,
-		Backend:    c.backend,
-		Config:     c.config,
+		Backend:    c.Backend,
+		Config:     c.Cfg,
 	}
 
 	if cert.Exists() {
@@ -110,7 +110,7 @@ func (c *Client) Generate(name string) error {
 
 	cert.Create()
 
-	token, err := c.backend.CreateTokenForCertificate(name)
+	token, err := c.Backend.CreateTokenForCertificate(name)
 	if err != nil {
 		return err
 	}
@@ -120,12 +120,12 @@ func (c *Client) Generate(name string) error {
 }
 
 func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) error {
-	ca := GetCA(c.backend, c.config)
+	ca := GetCA(c.Backend, c.Cfg)
 
 	cert := &Cert{
 		CommonName: name,
-		Backend:    c.backend,
-		Config:     c.config,
+		Backend:    c.Backend,
+		Config:     c.Cfg,
 	}
 
 	if !cert.Exists() {
@@ -177,12 +177,12 @@ func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) e
 }
 
 func (c *Client) Revoke(name string) error {
-	ca := GetCA(c.backend, c.config)
+	ca := GetCA(c.Backend, c.Cfg)
 
 	cert := &Cert{
 		CommonName: name,
-		Backend:    c.backend,
-		Config:     c.config,
+		Backend:    c.Backend,
+		Config:     c.Cfg,
 	}
 
 	if !cert.Exists() {
@@ -200,7 +200,7 @@ func (c *Client) Revoke(name string) error {
 }
 
 func (c *Client) CA(printCert bool, printKey bool, printCRL bool) error {
-	ca := GetCA(c.backend, c.config)
+	ca := GetCA(c.Backend, c.Cfg)
 
 	var err error
 
