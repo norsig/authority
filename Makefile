@@ -4,7 +4,7 @@ PREFIX  = "bin"
 default: build test
 
 build: generate
-	@godep go build -o $(PREFIX)/$(PROGRAM)
+	CGO_ENABLED=0 godep go build -a -installsuffix cgo -ldflags "-s" -o $(PREFIX)/$(PROGRAM)
 
 test: generate
 	@godep go test -v ./... -race --timeout=40s
