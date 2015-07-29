@@ -1,6 +1,7 @@
 package authority
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -106,6 +107,10 @@ func (c *Client) Generate(name string) error {
 
 	if cert.Exists() {
 		return fmt.Errorf("certificate %s already exists", name)
+	}
+
+	if _, err := c.Backend.GetConfig(); err != nil {
+		return errors.New("unable to get configuration")
 	}
 
 	cert.Create()
