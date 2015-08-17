@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -38,6 +39,9 @@ func (c *Crypto) CreateCA() (*x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 func (c *Crypto) CreateCertificateRequest() (*x509.Certificate, *rsa.PrivateKey, error) {
+	if c.Cert.Config == nil {
+		return nil, nil, errors.New("configuration not available")
+	}
 	d := &c.Cert.Config.Defaults
 	subject := &pkix.Name{
 		Country:            []string{d.Country},
