@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -18,7 +17,6 @@ type Client struct {
 
 	config          *Config
 	backend         backend.Backend
-	user            *user.User
 	baseDir         string
 	certsDir        string
 	keysDir         string
@@ -28,9 +26,9 @@ type Client struct {
 func (c *Client) Init(ignoreConfig bool) error {
 	c.restrictedNames = []string{"ca", "cert", "config", "crl", "generate", "get", "key", "revoke"}
 
-	c.user, _ = user.Current()
+	homedir := os.Getenv("HOME")
 
-	c.baseDir = filepath.Join(c.user.HomeDir, ".authority")
+	c.baseDir = filepath.Join(homedir, ".authority")
 	c.certsDir = filepath.Join(c.baseDir, "certs")
 	c.keysDir = filepath.Join(c.baseDir, "keys")
 
