@@ -12,6 +12,8 @@ import (
 	"github.com/ovrclk/authority/backend"
 )
 
+// Client provides an interface for creating, storing and retrieving x509
+// certificates.
 type Client struct {
 	Server  string
 	Token   string
@@ -24,6 +26,8 @@ type Client struct {
 	restrictedNames []string
 }
 
+// Init initializes the authority Client, loading configuration and
+// connecting to the backend.
 func (c *Client) Init(ignoreConfig bool) error {
 	c.restrictedNames = []string{"ca", "cert", "config", "crl", "generate", "get", "key", "revoke"}
 
@@ -58,6 +62,7 @@ func (c *Client) Init(ignoreConfig bool) error {
 	return nil
 }
 
+// loads the configuration from the backend
 func (c *Client) loadConfig() error {
 	var err error
 	cfg, err := c.Backend.GetConfig()
@@ -70,8 +75,9 @@ func (c *Client) loadConfig() error {
 	return nil
 }
 
-func (c *Client) Config(config string) error {
-	if config == "" {
+// Config displays the stored config, or loads and stores the provided file.
+func (c *Client) Config(configPath string) error {
+	if configPath == "" {
 		cfg, err := c.Backend.GetConfig()
 		if err != nil {
 			log.Println(err)
@@ -79,9 +85,9 @@ func (c *Client) Config(config string) error {
 			log.Println(fmt.Sprintf("Current configuration:\n%s", cfg))
 		}
 	} else {
-		data, err := ioutil.ReadFile(config)
+		data, err := ioutil.ReadFile(configPath)
 		if err != nil {
-			return fmt.Errorf("can't load configuration file: %s", config)
+			return fmt.Errorf("can't load configuration file: %s", configPath)
 		}
 		err = c.Backend.PutConfig(string(data))
 		if err != nil {
@@ -92,6 +98,9 @@ func (c *Client) Config(config string) error {
 	return nil
 }
 
+// Generate creates and displays a certificate for the provided common name.
+// It will also generate and display a backend access token with granular
+// permissions to access the certificate.
 func (c *Client) Generate(name string) error {
 	if !c.nameIsValid(name) {
 		return fmt.Errorf("%s is a restricted name", name)
@@ -122,6 +131,15 @@ func (c *Client) Generate(name string) error {
 	return nil
 }
 
+// Get retrieves and either displays or stores on the filesystem the
+// certificate, private key and root certificate for the provided common
+// name, assuming that it exists already.
+//
+// If stored on the filesystem, the files will be stored in ~/.authority
+// by default.
+//
+// The certificate, key and root certificate will be displayed or stored in a
+// PEM encoded format.
 func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) error {
 	ca := GetCA(c.Backend, c.Cfg)
 
@@ -179,6 +197,9 @@ func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) e
 	return nil
 }
 
+// Revoke adds the certificate with the provided common name to the root
+// certificates certificate revocation list, assuming that the indicated
+// certificate exists.
 func (c *Client) Revoke(name string) error {
 	ca := GetCA(c.Backend, c.Cfg)
 
@@ -202,6 +223,16 @@ func (c *Client) Revoke(name string) error {
 	return nil
 }
 
+// CA retrieves and either displays or stores on the filesystem the
+// certificate, private key and certificate revocation list for the root
+// certificate, assuming that it exists already.
+//
+// If stored on the filesystem, the files will be stored in ~/.authority
+// by default.
+//
+// The certificate and key will be displayed or stored in a PEM encoded
+// format, while the certificate revocation list will be displayed or stored
+// as raw bytes.
 func (c *Client) CA(printCert bool, printKey bool, printCRL bool) error {
 	ca := GetCA(c.Backend, c.Cfg)
 
