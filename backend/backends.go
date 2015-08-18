@@ -6,12 +6,13 @@ import (
 	"math/big"
 )
 
+// Interface for storing authority configuration information, as well as
+// generated certificates and keys.
 type Backend interface {
 	Connect() error
 
 	// checks
 	CheckCertificateExists(name string) bool
-	CheckCertificateValid(name string) bool
 	CheckPrivateKeyExists(name string) bool
 
 	// gets
