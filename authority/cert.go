@@ -14,6 +14,8 @@ import (
 	"github.com/ovrclk/authority/backend"
 )
 
+// Cert represents an x509 certificate, including it's private key, and
+// in the case of a root key, it's certificate revocation list.
 type Cert struct {
 	CommonName string
 	IsRoot     bool
@@ -27,6 +29,8 @@ type Cert struct {
 	*Config
 }
 
+// GetCA returns the root certificate, creating it if it does not already
+// exist.
 func GetCA(backend backend.Backend, config *Config) *Cert {
 	cert := &Cert{
 		CommonName: "ca",
@@ -43,6 +47,8 @@ func GetCA(backend backend.Backend, config *Config) *Cert {
 	return cert
 }
 
+// CertificatePEM returns a PEM encoded string representation of the
+// provided x509.Certificate.
 func CertificatePEM(c *x509.Certificate) string {
 	pem := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
@@ -51,6 +57,8 @@ func CertificatePEM(c *x509.Certificate) string {
 	return string(pem)
 }
 
+// PrivateKeyPEM returns a PEM encoded string representation of the
+// provided rsa.PrivateKey.
 func PrivateKeyPEM(k *rsa.PrivateKey) string {
 	pem := pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
@@ -59,6 +67,8 @@ func PrivateKeyPEM(k *rsa.PrivateKey) string {
 	return string(pem)
 }
 
+// CRLPEM returns a PEM encoded string representation of the provided
+// pkix.CertificateList.
 func CRLPEM(c *pkix.CertificateList) string {
 	if c == nil {
 		return ""
@@ -70,6 +80,7 @@ func CRLPEM(c *pkix.CertificateList) string {
 	return string(pem)
 }
 
+// Load the certificate and private key from the backend.
 func (c *Cert) load() {
 	var err error
 	if c.certificate, err = c.Backend.GetCertificate(c.GetName()); err != nil {
@@ -81,6 +92,7 @@ func (c *Cert) load() {
 	c.loaded = true
 }
 
+// Save the certificate and private key to the backend.
 func (c *Cert) store() {
 	if c.loaded {
 		if err := c.Backend.PutCertificate(c.GetName(), c.certificate); err != nil {
@@ -93,6 +105,8 @@ func (c *Cert) store() {
 	}
 }
 
+// GetCertificate returns the certificate for this Cert, loading it if
+// neccesary in the process.
 func (c *Cert) GetCertificate() *x509.Certificate {
 	if !c.loaded {
 		c.load()
@@ -100,6 +114,8 @@ func (c *Cert) GetCertificate() *x509.Certificate {
 	return c.certificate
 }
 
+// GetPrivateKey returns the private key for this Cert, loading it if
+// neccesary in the process.
 func (c *Cert) GetPrivateKey() *rsa.PrivateKey {
 	if !c.loaded {
 		c.load()
@@ -107,6 +123,8 @@ func (c *Cert) GetPrivateKey() *rsa.PrivateKey {
 	return c.privateKey
 }
 
+// GetCRLRaw returns a []byte holding the certificate revocation list for
+// this Cert. It returns nil if this Cert is not a root certificate.
 func (c *Cert) GetCRLRaw() []byte {
 	if !c.IsRoot {
 		return nil
@@ -114,6 +132,8 @@ func (c *Cert) GetCRLRaw() []byte {
 	return c.Backend.GetCRLRaw()
 }
 
+// Revoke adds the provided certificate to this Cert's CRL. If this Cert is
+// not a root certificate, it will return an error.
 func (c *Cert) Revoke(cert *x509.Certificate) error {
 	if !c.IsRoot {
 		return fmt.Errorf("certificate is not a root certificate and has no CRL")
@@ -151,6 +171,7 @@ func (c *Cert) Revoke(cert *x509.Certificate) error {
 	return nil
 }
 
+// Create creates the certificate and private key for this Cert.
 func (c *Cert) Create() error {
 	ssl := &Crypto{Cert: c}
 
@@ -179,14 +200,18 @@ func (c *Cert) Create() error {
 	return nil
 }
 
+// GetName returns the common name of this Cert.
 func (c *Cert) GetName() string {
 	return strings.Replace(strings.ToLower(c.CommonName), " ", "-", -1)
 }
 
+// Exists returns whether or not a certificate with this Cert's common
+// name has been created and stored in the backend.
 func (c *Cert) Exists() bool {
 	return c.Backend.CheckCertificateExists(c.GetName())
 }
 
+// determines whether a root certificate has been created
 func (c *Cert) rootCertMissing() bool {
 	return c.Backend.CheckCertificateExists("ca")
 }

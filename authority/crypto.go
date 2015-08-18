@@ -12,10 +12,13 @@ import (
 
 const keySize = 2048
 
+// Crypto provides and interface for lower level x509 certificate operations.
 type Crypto struct {
 	*Cert
 }
 
+// CreateCA creates a root signing certificate given the previously provided
+// configuration.
 func (c *Crypto) CreateCA() (*x509.Certificate, *rsa.PrivateKey, error) {
 	d := &c.Cert.Config.Defaults
 	subject := &pkix.Name{
@@ -38,6 +41,8 @@ func (c *Crypto) CreateCA() (*x509.Certificate, *rsa.PrivateKey, error) {
 	return cert, key, nil
 }
 
+// CreateCertificateRequest creates a new certificate and private key. The
+// certificate will be signed by the root certificate.
 func (c *Crypto) CreateCertificateRequest() (*x509.Certificate, *rsa.PrivateKey, error) {
 	if c.Cert.Config == nil {
 		return nil, nil, errors.New("configuration not available")

@@ -6,6 +6,8 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+// Config provides a structure to read x509 certificate configuration
+// information from TOML.
 type Config struct {
 	Defaults DefaultsConfig `toml:"defaults"`
 }
@@ -23,6 +25,7 @@ type DefaultsConfig struct {
 	CertExpiry string `toml:"cert_expiry"`
 }
 
+// Load the provided TOML configuration into a Config struct.
 func OpenConfig(config string) (*Config, error) {
 	c := &Config{}
 	if _, err := toml.Decode(config, c); err != nil {

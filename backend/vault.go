@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
+// Vault based backend for storing authority configuration and generated
+// certificates and keys.
 type Vault struct {
 	Addr   string
 	Client *api.Client
@@ -23,6 +25,7 @@ type Vault struct {
 	Token  string
 }
 
+// Connect to Vault server.
 func (v *Vault) Connect() error {
 	config := v.insecureConfig()
 	config.Address = v.Server
@@ -40,6 +43,7 @@ func (v *Vault) Connect() error {
 
 // checks
 
+// Determine if a certificate already exists in Vault.
 func (v *Vault) CheckCertificateExists(name string) bool {
 	path := fmt.Sprintf("secret/authority/cert/%s", name)
 	secret, err := v.Client.Logical().Read(path)
@@ -49,10 +53,7 @@ func (v *Vault) CheckCertificateExists(name string) bool {
 	return true
 }
 
-func (v *Vault) CheckCertificateValid(name string) bool {
-	return true
-}
-
+// Determine if a private key already exists in Vault.
 func (v *Vault) CheckPrivateKeyExists(name string) bool {
 	path := fmt.Sprintf("secret/authority/key/%s", name)
 	secret, err := v.Client.Logical().Read(path)
@@ -64,6 +65,8 @@ func (v *Vault) CheckPrivateKeyExists(name string) bool {
 
 // gets
 
+// Create a Vault access token with granular permissions to only access
+// the specified certificate, private key and root certificate.
 func (v *Vault) CreateTokenForCertificate(name string) (string, error) {
 	rules := fmt.Sprintf(`
 path "secret/authority/cert" {
@@ -101,6 +104,7 @@ path "secret/authority/key/%s" {
 	return secret.Auth.ClientToken, nil
 }
 
+// Load authority configuraiton information from Vault.
 func (v *Vault) GetConfig() (string, error) {
 	path := "secret/authority/config"
 	data, err := v.getString(path)
@@ -115,6 +119,7 @@ func (v *Vault) GetConfig() (string, error) {
 	return data, nil
 }
 
+// Load a certificate from Vault.
 func (v *Vault) GetCertificate(name string) (*x509.Certificate, error) {
 	resp, err := v.getCertificateBytes(name)
 	if err != nil {
@@ -126,6 +131,7 @@ func (v *Vault) GetCertificate(name string) (*x509.Certificate, error) {
 	}
 }
 
+// Load the root certificate revocation list from Vault.
 func (v *Vault) GetCRLRaw() []byte {
 	path := "secret/authority/crl"
 	data, err := v.getBytes(path)
@@ -139,6 +145,7 @@ func (v *Vault) GetCRLRaw() []byte {
 	}
 }
 
+// Get the next unused serial number in sequence from Vault.
 func (v *Vault) GetNextSerialNumber() *big.Int {
 	curr := big.NewInt(1)
 	path := "secret/authority/serial"
@@ -157,6 +164,7 @@ func (v *Vault) GetNextSerialNumber() *big.Int {
 	return curr
 }
 
+// Load a private key from Vault.
 func (v *Vault) GetPrivateKey(name string) (*rsa.PrivateKey, error) {
 	path := fmt.Sprintf("secret/authority/key/%s", name)
 
@@ -172,12 +180,14 @@ func (v *Vault) GetPrivateKey(name string) (*rsa.PrivateKey, error) {
 
 // puts
 
+// Store the provided configuration TOML markup in Vault.
 func (v *Vault) PutConfig(config string) error {
 	path := "secret/authority/config"
 	err := v.putString(path, config)
 	return err
 }
 
+// Store the provided certificate in PEM format in Vault.
 func (v *Vault) PutCertificate(name string, cert *x509.Certificate) error {
 	path := fmt.Sprintf("secret/authority/cert/%s", name)
 	err := v.putBytes(path, pem.EncodeToMemory(&pem.Block{
@@ -192,6 +202,7 @@ func (v *Vault) PutCertificate(name string, cert *x509.Certificate) error {
 	}
 }
 
+// Store the provided private key in PEM format in Vault.
 func (v *Vault) PutPrivateKey(name string, key *rsa.PrivateKey) error {
 	path := fmt.Sprintf("secret/authority/key/%s", name)
 	return v.putBytes(path, pem.EncodeToMemory(&pem.Block{
@@ -200,6 +211,7 @@ func (v *Vault) PutPrivateKey(name string, key *rsa.PrivateKey) error {
 	}))
 }
 
+// Store the provided certificate revocation list in PEM format in Vault.
 func (v *Vault) PutCRL(crlBytes []byte) error {
 	path := "secret/authority/crl"
 	return v.putBytes(path, pem.EncodeToMemory(&pem.Block{

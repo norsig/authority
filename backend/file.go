@@ -12,10 +12,14 @@ import (
 	"path/filepath"
 )
 
+// Filesystem backend for storing authority configuration and generated
+// certificates and keys.
 type File struct {
 	Path string
 }
 
+// Ensure the specified directory exists, and has subdirectories for
+// certificates and keys.
 func (f *File) Connect() error {
 	dirs := []string{filepath.Join(f.Path, "certs"), filepath.Join(f.Path, "keys")}
 	for _, dir := range dirs {
@@ -31,24 +35,25 @@ func (f *File) Connect() error {
 
 // checks
 
+// Determine if a certificate already exists on disk.
 func (f *File) CheckCertificateExists(name string) bool {
 	return fileExists(f.certPath(name))
 }
 
-func (f *File) CheckCertificateValid(name string) bool {
-	return true
-}
-
+// Determine if a private key already exists in Vault.
 func (f *File) CheckPrivateKeyExists(name string) bool {
 	return fileExists(f.keyPath(name))
 }
 
 // gets
 
+// Create an access token for a specific certificate. This is not
+// applicable to this filesystem based backend.
 func (f *File) CreateTokenForCertificate(name string) (string, error) {
 	return "", nil
 }
 
+// Load authority configuration information from disk.
 func (f *File) GetConfig() (string, error) {
 	bytes, err := f.readFile(f.configPath())
 	if err != nil {
@@ -58,6 +63,7 @@ func (f *File) GetConfig() (string, error) {
 	return string(bytes), err
 }
 
+// Load a certificate from the filesystem.
 func (f *File) GetCertificate(name string) (*x509.Certificate, error) {
 	bytes, err := f.readFile(f.certPath(name))
 	if err != nil {
@@ -69,6 +75,7 @@ func (f *File) GetCertificate(name string) (*x509.Certificate, error) {
 	return cert, nil
 }
 
+// Load the root certificate revocation list from the filesystem.
 func (f *File) GetCRLRaw() []byte {
 	bytes, err := f.readFile(f.crlPath())
 	if err != nil && os.IsExist(err) {
@@ -77,6 +84,7 @@ func (f *File) GetCRLRaw() []byte {
 	return bytes
 }
 
+// Get the next unused serial number in sequence from the filesystem.
 func (f *File) GetNextSerialNumber() *big.Int {
 	curr := big.NewInt(1)
 	bytes, err := f.readFile(f.serialNumberPath())
@@ -94,6 +102,7 @@ func (f *File) GetNextSerialNumber() *big.Int {
 	return curr
 }
 
+// Load a private key from the filesystem.
 func (f *File) GetPrivateKey(name string) (*rsa.PrivateKey, error) {
 	bytes, err := f.readFile(f.keyPath(name))
 	if err != nil {
@@ -108,18 +117,23 @@ func (f *File) GetPrivateKey(name string) (*rsa.PrivateKey, error) {
 
 // puts
 
+// Store the provided configuration TOML markup on the filesystem.
 func (f *File) PutConfig(config string) error {
 	return f.writeFileRaw(f.configPath(), []byte(config))
 }
 
+// Store the provided certificate in PEM format on the filesystem.
 func (f *File) PutCertificate(name string, cert *x509.Certificate) error {
 	return f.writeFile("CERTIFICATE", f.certPath(name), cert.Raw)
 }
 
+// Store the provided private key in PEM format on the filesystem.
 func (f *File) PutPrivateKey(name string, key *rsa.PrivateKey) error {
 	return f.writeFile("RSA PRIVATE KEY", f.keyPath(name), x509.MarshalPKCS1PrivateKey(key))
 }
 
+// Store the provided certificate revocation list in raw byte format on the
+// filesystem.
 func (f *File) PutCRL(crlBytes []byte) error {
 	return f.writeFileRaw(f.crlPath(), crlBytes)
 }
