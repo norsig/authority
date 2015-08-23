@@ -7,7 +7,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -93,16 +92,14 @@ func (c *Cert) load() {
 }
 
 // Save the certificate and private key to the backend.
-func (c *Cert) store() {
+func (c *Cert) store() error {
 	if c.loaded {
 		if err := c.Backend.PutCertificate(c.GetName(), c.certificate); err != nil {
-			log.Println("error storing certificate:", err)
-		}
-
-		if err := c.Backend.PutPrivateKey(c.GetName(), c.privateKey); err != nil {
-			log.Println("error storing private key:", err)
+			return err
 		}
 	}
+
+	return c.Backend.PutPrivateKey(c.GetName(), c.privateKey)
 }
 
 // GetCertificate returns the certificate for this Cert, loading it if
@@ -175,6 +172,10 @@ func (c *Cert) Revoke(cert *x509.Certificate) error {
 func (c *Cert) Create() error {
 	ssl := &Crypto{Cert: c}
 
+	if len(c.GetName()) == 0 {
+		return fmt.Errorf("authority: name cannot be blank")
+	}
+
 	if c.Exists() {
 		return nil
 	}
@@ -184,14 +185,11 @@ func (c *Cert) Create() error {
 		creationFunc = ssl.CreateCA
 	}
 
-	log.Println("creating certificate for", c.GetName())
-
 	var err error
 
 	if c.certificate, c.privateKey, err = creationFunc(); err != nil {
-		return fmt.Errorf("error generating cert: %s", err)
+		return fmt.Errorf("authority: %v", err)
 	} else {
-		log.Println("created certificate for", c.GetName())
 		c.loaded = true
 	}
 
