@@ -87,11 +87,11 @@ func (c *Client) Config(configPath string) error {
 	} else {
 		data, err := ioutil.ReadFile(configPath)
 		if err != nil {
-			return fmt.Errorf("can't load configuration file: %s", configPath)
+			return fmt.Errorf("authority: error reading config file (%s): %v", configPath, err)
 		}
 		err = c.Backend.PutConfig(string(data))
 		if err != nil {
-			return fmt.Errorf("can't store configuration")
+			return fmt.Errorf("authority: cannot store configuration: %v", err)
 		}
 		log.Println("configuration stored")
 	}
