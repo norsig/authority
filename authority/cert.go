@@ -38,6 +38,10 @@ func GetCA(backend backend.Backend, config *Config) *Cert {
 		Config:     config,
 	}
 
+	if len(cert.GetName()) == 0 {
+		return nil
+	}
+
 	// we'll implicitly make a CA cert
 	if !cert.Exists() {
 		cert.Create()
@@ -159,7 +163,7 @@ func (c *Cert) Revoke(cert *x509.Certificate) error {
 	key := c.GetPrivateKey()
 
 	if key == nil {
-		return fmt.Errorf("can't load private key")
+		return fmt.Errorf("authority: can't load private key")
 	}
 
 	newCRL, _ := ca.CreateCRL(rand.Reader, key, currentlyRevoked, time.Now().UTC(), time.Now().UTC().AddDate(10, 0, 0))
@@ -189,13 +193,10 @@ func (c *Cert) Create() error {
 
 	if c.certificate, c.privateKey, err = creationFunc(); err != nil {
 		return fmt.Errorf("authority: %v", err)
-	} else {
-		c.loaded = true
 	}
 
-	c.store()
-
-	return nil
+	c.loaded = true
+	return c.store()
 }
 
 // GetName returns the common name of this Cert.

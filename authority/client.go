@@ -51,7 +51,6 @@ func (c *Client) Init(ignoreConfig bool) error {
 	})
 
 	if err := c.Backend.Connect(); err != nil {
-		log.Fatal("Can't connect to backend", err)
 		return err
 	}
 
@@ -80,10 +79,9 @@ func (c *Client) Config(configPath string) error {
 	if configPath == "" {
 		cfg, err := c.Backend.GetConfig()
 		if err != nil {
-			log.Println(err)
-		} else {
-			log.Println(fmt.Sprintf("Current configuration:\n%s", cfg))
+			return err
 		}
+		fmt.Printf("Current configuration:\n%s", cfg)
 	} else {
 		data, err := ioutil.ReadFile(configPath)
 		if err != nil {
@@ -93,7 +91,6 @@ func (c *Client) Config(configPath string) error {
 		if err != nil {
 			return fmt.Errorf("authority: cannot store configuration: %v", err)
 		}
-		log.Println("configuration stored")
 	}
 	return nil
 }
