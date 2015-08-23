@@ -14,7 +14,7 @@ const (
 	Version           = "0.2.3"
 	VersionPrerelease = "dev"
 
-	DEFAULT_VAULT_SERVER = "https://localhost:8200"
+	DEFAULT_VAULT_SERVER = "http://localhost:8200"
 )
 
 var (
