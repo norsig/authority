@@ -7,14 +7,14 @@ import (
 
 	"github.com/docopt/docopt-go"
 
-	"github.com/ovrclk/authority/authority"
+	"github.com/ovrclk/authority/client"
 )
 
 const (
 	Version           = "0.2.3"
 	VersionPrerelease = "dev"
 
-	DEFAULT_VAULT_SERVER = "https://localhost:8200"
+	DEFAULT_VAULT_SERVER = "http://localhost:8200"
 )
 
 var (
@@ -31,8 +31,6 @@ func main() {
 	config := ""
 	server := DEFAULT_VAULT_SERVER
 	name := ""
-
-	var client *authority.Client
 
 	if args["--server"] != nil {
 		server = args["--server"].(string)
@@ -59,29 +57,22 @@ func main() {
 	key := args["key"].(bool)
 	crl := args["crl"].(bool)
 
-	// skip failing config load if we're specifically running the config command
-	ignoreConfig := args["config"].(bool)
+	client := client.NewClient(server, token)
 
-	client = &authority.Client{Server: server, Token: token}
-
-	if err := client.Init(ignoreConfig); err != nil {
-		log.Fatal(err)
-	} else {
-		var err error
-		if args["config"].(bool) {
-			err = client.Config(config)
-		} else if args["generate"].(bool) {
-			err = client.Generate(name)
-		} else if args["get"].(bool) {
-			err = client.Get(name, ca, cert, key)
-		} else if args["revoke"].(bool) {
-			err = client.Revoke(name)
-		} else if args["ca"].(bool) {
-			err = client.CA(cert, key, crl)
-		}
-		if err != nil {
-			log.Println("error:", err)
-		}
+	var err error
+	if args["config"].(bool) {
+		err = client.Config(config)
+	} else if args["generate"].(bool) {
+		err = client.Generate(name)
+	} else if args["get"].(bool) {
+		err = client.Get(name, ca, cert, key)
+	} else if args["revoke"].(bool) {
+		err = client.Revoke(name)
+	} else if args["ca"].(bool) {
+		err = client.CA(cert, key, crl)
+	}
+	if err != nil {
+		log.Println("error:", err)
 	}
 
 }

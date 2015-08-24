@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ovrclk/authority/backend"
+	"github.com/ovrclk/authority/config"
 )
 
 func makeTempDir(t *testing.T) string {
@@ -17,12 +18,12 @@ func makeTempDir(t *testing.T) string {
 	return dir
 }
 
-func testAuthorityConfig(t *testing.T) (backend.Backend, *Config) {
+func testAuthorityConfig(t *testing.T) (backend.Backend, *config.Config) {
 	dir := makeTempDir(t)
 	backend := backend.Backend(&backend.File{Path: dir})
 	backend.Connect()
-	config := &Config{
-		Defaults: DefaultsConfig{
+	config := &config.Config{
+		Defaults: config.DefaultsConfig{
 			RootDomain: "authority.root",
 			Email:      "user@example.com",
 			Org:        "foo",
@@ -114,7 +115,7 @@ func TestRevokeCert(t *testing.T) {
 
 	serial := cert.GetCertificate().SerialNumber
 
-	ca := GetCA(backend, config)
+	ca, _ := GetCA(backend, config)
 	ca.Revoke(cert.GetCertificate())
 
 	crl := backend.GetCRLRaw()
@@ -184,7 +185,7 @@ func TestImplicitCACreate(t *testing.T) {
 		t.Fatal("cert creation failed:", err)
 	}
 
-	ca := GetCA(backend, config)
+	ca, _ := GetCA(backend, config)
 
 	if !ca.Exists() {
 		t.Fatal("ca doesn't exist")

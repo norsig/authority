@@ -5,7 +5,7 @@ default: build test
 
 build: generate
 	@CGO_ENABLED=0 godep go build -a -installsuffix cgo -ldflags "-s" -o $(PREFIX)/$(PROGRAM)
-	@cp $(PREFIX)/$(PROGRAM) $(GOPATH)/$(PREFIX)/$(PROGRAM)
+	@cp $(PREFIX)/$(PROGRAM) $(GOPATH)/$(PREFIX)/$(PROGRAM) || true
 
 test: generate
 	@godep go test -v ./... -race --timeout=40s

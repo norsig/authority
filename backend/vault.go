@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"log"
 	"math/big"
 	"net"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
+
+	"github.com/ovrclk/authority/config"
 )
 
 // Vault based backend for storing authority configuration and generated
@@ -32,8 +33,7 @@ func (v *Vault) Connect() error {
 
 	client, err := api.NewClient(config)
 	if err != nil {
-		log.Println("Can't connect to Vault server", v.Server, err)
-		return err
+		return fmt.Errorf("authority: can't connect to vault %v", err)
 	}
 	v.Client = client
 	v.Client.SetToken(v.Token)
@@ -105,18 +105,23 @@ path "secret/authority/key/%s" {
 }
 
 // Load authority configuraiton information from Vault.
-func (v *Vault) GetConfig() (string, error) {
+func (v *Vault) GetConfig() (*config.Config, error) {
 	path := "secret/authority/config"
 	data, err := v.getString(path)
 	if err != nil {
-		return "", fmt.Errorf("cannot open configuration, no permission")
+		return nil, fmt.Errorf("cannot open configuration, no permission")
 	}
 
 	if len(data) == 0 {
-		return "", fmt.Errorf("configuration does not exist, do you need to set it?")
+		return nil, fmt.Errorf("configuration does not exist, do you need to set it?")
 	}
 
-	return data, nil
+	c, err := config.OpenConfig(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // Load a certificate from Vault.

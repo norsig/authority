@@ -1,38 +1,34 @@
-package authority
+package client
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/ovrclk/authority/backend"
+	"github.com/ovrclk/authority/api"
+	"github.com/ovrclk/authority/authority"
+	"github.com/ovrclk/authority/config"
 )
 
-// Client provides an interface for creating, storing and retrieving x509
+// Client provides an command line client for creating, storing and retrieving x509
 // certificates.
 type Client struct {
-	Server  string
-	Token   string
-	Cfg     *Config
-	Backend backend.Backend
-
+	api             *api.Client
+	config          *config.Config
 	baseDir         string
 	certsDir        string
 	keysDir         string
 	restrictedNames []string
 }
 
-// Init initializes the authority Client, loading configuration and
-// connecting to the backend.
-func (c *Client) Init(ignoreConfig bool) error {
-	c.restrictedNames = []string{"ca", "cert", "config", "crl", "generate", "get", "key", "revoke"}
+func NewClient(server, token string) *Client {
+	var err error
+
+	c := &Client{}
 
 	homedir := os.Getenv("HOME")
-
 	c.baseDir = filepath.Join(homedir, ".authority")
 	c.certsDir = filepath.Join(c.baseDir, "certs")
 	c.keysDir = filepath.Join(c.baseDir, "keys")
@@ -40,35 +36,27 @@ func (c *Client) Init(ignoreConfig bool) error {
 	for _, dir := range []string{c.certsDir, c.keysDir} {
 		if _, err := os.Stat(dir); err != nil && os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0700); err != nil && !os.IsExist(err) {
-				return fmt.Errorf("Could not create %s directory %s", dir, err)
+				log.Fatal("authority: Could not create %s directory %v", dir, err)
 			}
 		}
 	}
 
-	c.Backend = backend.Backend(&backend.Vault{
-		Server: c.Server,
-		Token:  c.Token,
-	})
-
-	if err := c.Backend.Connect(); err != nil {
-		return err
+	c.api, err = api.NewClient(server, token, nil)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	if !ignoreConfig {
-		return c.loadConfig()
-	}
+	c.loadConfig()
 
-	return nil
+	return c
 }
 
 // loads the configuration from the backend
 func (c *Client) loadConfig() error {
 	var err error
-	cfg, err := c.Backend.GetConfig()
+	c.config, err = c.api.GetConfig()
 	if err != nil {
 		return err
-	} else {
-		c.Cfg, err = OpenConfig(cfg)
 	}
 
 	return nil
@@ -77,20 +65,29 @@ func (c *Client) loadConfig() error {
 // Config displays the stored config, or loads and stores the provided file.
 func (c *Client) Config(configPath string) error {
 	if configPath == "" {
-		cfg, err := c.Backend.GetConfig()
+		cfg, err := c.api.GetConfig()
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Current configuration:\n%s", cfg)
+		configStr, err := cfg.ToString()
+		if err != nil {
+			return err
+		}
+		fmt.Println(configStr)
 	} else {
 		data, err := ioutil.ReadFile(configPath)
 		if err != nil {
 			return fmt.Errorf("authority: error reading config file (%s): %v", configPath, err)
 		}
-		err = c.Backend.PutConfig(string(data))
+		config, err := config.OpenConfig(string(data))
+		if err != nil {
+			return err
+		}
+		err = c.api.SetConfig(config)
 		if err != nil {
 			return fmt.Errorf("authority: cannot store configuration: %v", err)
 		}
+		log.Println("authority: configuration stored")
 	}
 	return nil
 }
@@ -99,32 +96,12 @@ func (c *Client) Config(configPath string) error {
 // It will also generate and display a backend access token with granular
 // permissions to access the certificate.
 func (c *Client) Generate(name string) error {
-	if !c.nameIsValid(name) {
-		return fmt.Errorf("%s is a restricted name", name)
-	}
-
-	cert := &Cert{
-		CommonName: name,
-		Backend:    c.Backend,
-		Config:     c.Cfg,
-	}
-
-	if cert.Exists() {
-		return fmt.Errorf("certificate %s already exists", name)
-	}
-
-	if _, err := c.Backend.GetConfig(); err != nil {
-		return errors.New("unable to get configuration")
-	}
-
-	cert.Create()
-
-	token, err := c.Backend.CreateTokenForCertificate(name)
+	_, token, err := c.api.Generate(name)
 	if err != nil {
 		return err
 	}
-	log.Printf("access token for %s: %s", name, token)
 
+	log.Printf("access token for %s: %s", name, token)
 	return nil
 }
 
@@ -138,21 +115,17 @@ func (c *Client) Generate(name string) error {
 // The certificate, key and root certificate will be displayed or stored in a
 // PEM encoded format.
 func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) error {
-	ca := GetCA(c.Backend, c.Cfg)
-
-	cert := &Cert{
-		CommonName: name,
-		Backend:    c.Backend,
-		Config:     c.Cfg,
+	cert, err := c.api.Get(name)
+	if err != nil {
+		return err
 	}
 
-	if !cert.Exists() {
-		return fmt.Errorf("certificate %s does not exist", name)
+	root, err := c.api.GetCA()
+	if err != nil {
+		return err
 	}
 
-	var err error
-
-	caCert := CertificatePEM(ca.GetCertificate())
+	caCert := authority.CertificatePEM(root.ClientCertificate.Certificate)
 	if printCA {
 		fmt.Println(caCert)
 		return nil
@@ -163,7 +136,7 @@ func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) e
 		}
 	}
 
-	certCert := CertificatePEM(cert.GetCertificate())
+	certCert := authority.CertificatePEM(cert.Certificate)
 	if printCert {
 		fmt.Println(certCert)
 		return nil
@@ -174,22 +147,20 @@ func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) e
 		}
 	}
 
-	key := cert.GetPrivateKey()
-	if key == nil {
-		return fmt.Errorf("can't read private key!")
-	}
-
+	privateKey := authority.PrivateKeyPEM(cert.PrivateKey)
 	if printKey {
-		fmt.Println(PrivateKeyPEM(key))
+		fmt.Println(privateKey)
 		return nil
 	} else {
-		err = c.writeFile(filepath.Join(c.keysDir, fmt.Sprintf("%s.key", name)), PrivateKeyPEM(key))
+		err = c.writeFile(filepath.Join(c.keysDir, fmt.Sprintf("%s.key", name)), privateKey)
 		if err != nil {
 			return err
 		}
 	}
 
-	log.Println("certificate", name, "stored")
+	if !(printCA || printCert || printKey) {
+		log.Println("authority: stored certificate information")
+	}
 
 	return nil
 }
@@ -198,25 +169,11 @@ func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) e
 // certificates certificate revocation list, assuming that the indicated
 // certificate exists.
 func (c *Client) Revoke(name string) error {
-	ca := GetCA(c.Backend, c.Cfg)
-
-	cert := &Cert{
-		CommonName: name,
-		Backend:    c.Backend,
-		Config:     c.Cfg,
-	}
-
-	if !cert.Exists() {
-		return fmt.Errorf("certificate %s does not exist", name)
-	}
-
-	err := ca.Revoke(cert.GetCertificate())
+	err := c.api.Revoke(name)
 	if err != nil {
 		return err
 	}
-
 	log.Println("certificate", name, "revoked")
-
 	return nil
 }
 
@@ -231,11 +188,12 @@ func (c *Client) Revoke(name string) error {
 // format, while the certificate revocation list will be displayed or stored
 // as raw bytes.
 func (c *Client) CA(printCert bool, printKey bool, printCRL bool) error {
-	ca := GetCA(c.Backend, c.Cfg)
+	root, err := c.api.GetCA()
+	if err != nil {
+		return err
+	}
 
-	var err error
-
-	cert := CertificatePEM(ca.GetCertificate())
+	cert := authority.CertificatePEM(root.ClientCertificate.Certificate)
 	if printCert {
 		fmt.Println(cert)
 		return nil
@@ -246,36 +204,31 @@ func (c *Client) CA(printCert bool, printKey bool, printCRL bool) error {
 		}
 	}
 
-	key := ca.GetPrivateKey()
-	if key == nil {
-		return fmt.Errorf("can't read private key!")
-	}
-
+	privateKey := authority.PrivateKeyPEM(root.ClientCertificate.PrivateKey)
 	if printKey {
-		fmt.Println(PrivateKeyPEM(key))
+		fmt.Println(privateKey)
 		return nil
 	} else {
-		err = c.writeFile(filepath.Join(c.keysDir, "ca.key"), PrivateKeyPEM(key))
+		err = c.writeFile(filepath.Join(c.keysDir, "ca.key"), privateKey)
 		if err != nil {
 			return err
 		}
 	}
 
-	crl := ca.GetCRLRaw()
+	crlBytes := root.CRL.TBSCertList.Raw
 	if printCRL {
 		f := os.Stdout
-		f.Write(crl)
+		f.Write(crlBytes)
 		f.Close()
 		return nil
 	} else {
-		err = c.writeRawFile(filepath.Join(c.baseDir, "crl.crl"), crl)
+		err = c.writeRawFile(filepath.Join(c.baseDir, "crl.crl"), crlBytes)
 		if err != nil {
 			return err
 		}
 	}
 
 	log.Println("certificate authority information stored")
-
 	return nil
 }
 
@@ -295,14 +248,4 @@ func (c *Client) writeFile(path string, data string) error {
 	}
 	_, err = fileOut.WriteString(data)
 	return err
-}
-
-func (c *Client) nameIsValid(name string) bool {
-	toCheck := strings.ToLower(name)
-	for _, rn := range c.restrictedNames {
-		if rn == toCheck {
-			return false
-		}
-	}
-	return true
 }

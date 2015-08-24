@@ -126,7 +126,10 @@ func (c *Crypto) makeCert(isCA bool, subject *pkix.Name, key *rsa.PrivateKey) []
 		parent = &template
 		parentKey = key
 	} else {
-		ca := GetCA(c.Backend, c.Config)
+		ca, err := GetCA(c.Backend, c.Config)
+		if err != nil {
+			return nil
+		}
 		parent = ca.GetCertificate()
 		parentKey = ca.GetPrivateKey()
 		template.Issuer = parent.Subject
