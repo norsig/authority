@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ovrclk/authority/backend"
+	"github.com/ovrclk/authority/config"
 )
 
 // Cert represents an x509 certificate, including it's private key, and
@@ -25,12 +26,12 @@ type Cert struct {
 	crl         *pkix.CertificateList
 	loaded      bool
 
-	*Config
+	*config.Config
 }
 
 // GetCA returns the root certificate, creating it if it does not already
 // exist.
-func GetCA(backend backend.Backend, config *Config) *Cert {
+func GetCA(backend backend.Backend, config *config.Config) (*Cert, error) {
 	cert := &Cert{
 		CommonName: "ca",
 		IsRoot:     true,
@@ -38,16 +39,15 @@ func GetCA(backend backend.Backend, config *Config) *Cert {
 		Config:     config,
 	}
 
-	if len(cert.GetName()) == 0 {
-		return nil
-	}
-
 	// we'll implicitly make a CA cert
 	if !cert.Exists() {
-		cert.Create()
+		err := cert.Create()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return cert
+	return cert, nil
 }
 
 // CertificatePEM returns a PEM encoded string representation of the

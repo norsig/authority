@@ -1,6 +1,7 @@
-package authority
+package config
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/BurntSushi/toml"
@@ -29,7 +30,16 @@ type DefaultsConfig struct {
 func OpenConfig(config string) (*Config, error) {
 	c := &Config{}
 	if _, err := toml.Decode(config, c); err != nil {
-		return nil, fmt.Errorf("invalid config: %s", err)
+		return nil, fmt.Errorf("authority: invalid config %v", err)
 	}
 	return c, nil
+}
+
+// Dump configuration to a TOML string.
+func (c *Config) ToString() (string, error) {
+	buf := new(bytes.Buffer)
+	if err := toml.NewEncoder(buf).Encode(c); err != nil {
+		return "", fmt.Errorf("authority: cannot encode configuration: %v", err)
+	}
+	return buf.String(), nil
 }

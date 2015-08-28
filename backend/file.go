@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+
+	"github.com/ovrclk/authority/config"
 )
 
 // Filesystem backend for storing authority configuration and generated
@@ -54,13 +56,17 @@ func (f *File) CreateTokenForCertificate(name string) (string, error) {
 }
 
 // Load authority configuration information from disk.
-func (f *File) GetConfig() (string, error) {
+func (f *File) GetConfig() (*config.Config, error) {
 	bytes, err := f.readFile(f.configPath())
 	if err != nil {
 		log.Println("error:", err)
-		return "", err
+		return nil, err
 	}
-	return string(bytes), err
+	c, err := config.OpenConfig(string(bytes))
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 // Load a certificate from the filesystem.

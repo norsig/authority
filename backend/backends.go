@@ -4,6 +4,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"math/big"
+
+	"github.com/ovrclk/authority/config"
 )
 
 // Interface for storing authority configuration information, as well as
@@ -17,7 +19,7 @@ type Backend interface {
 
 	// gets
 	CreateTokenForCertificate(name string) (string, error)
-	GetConfig() (string, error)
+	GetConfig() (*config.Config, error)
 	GetCertificate(name string) (*x509.Certificate, error)
 	GetCRLRaw() []byte
 	GetNextSerialNumber() *big.Int
