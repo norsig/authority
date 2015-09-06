@@ -65,7 +65,7 @@ func (c *CommandFactory) caCommands() {
 		Short: "Get root certificate private key",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
-			err := c.Client.CA(false, true, false)
+			err := c.Client.GetKey("ca")
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
@@ -78,7 +78,7 @@ func (c *CommandFactory) caCommands() {
 		Short: "Get root certificate",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
-			err := c.Client.CA(true, false, false)
+			err := c.Client.GetCert("ca")
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
@@ -91,7 +91,7 @@ func (c *CommandFactory) caCommands() {
 		Short: "Get root certificate revocation list",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
-			err := c.Client.CA(false, false, true)
+			err := c.Client.GetCRL("ca")
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
@@ -138,7 +138,7 @@ func (c *CommandFactory) certCommands() {
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
 			name := getCertificateName(args)
-			err := c.Client.Get(name, false, true)
+			err := c.Client.GetKey(name)
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
@@ -152,7 +152,7 @@ func (c *CommandFactory) certCommands() {
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
 			name := getCertificateName(args)
-			err := c.Client.Get(name, true, false)
+			err := c.Client.GetCert(name)
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
@@ -207,7 +207,7 @@ func (c *CommandFactory) configCommands() {
 		Short: "Get authority configuration",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
-			c.Client.Config(filePath)
+			c.Client.GetConfig()
 		},
 	}
 
@@ -220,7 +220,7 @@ func (c *CommandFactory) configCommands() {
 				os.Exit(1)
 			} else {
 				c.initClient()
-				c.Client.Config(filePath)
+				c.Client.SetConfig(filePath)
 			}
 		},
 	}
