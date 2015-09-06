@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ovrclk/authority/client"
+	"github.com/ovrclk/authority/version"
 )
 
 const (
@@ -21,7 +22,28 @@ type CommandFactory struct {
 	Token    string
 	CertName string
 	RootName string
-	Version  string
+}
+
+func New() *cli.CLI {
+	root := &cobra.Command{
+		Short: "Authority is a server providing x509 certificate management",
+		Use:   "authority COMMAND [<args>..] [options]",
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Help()
+		},
+	}
+
+	cf := &CommandFactory{
+		Cli: cli.New(root),
+	}
+
+	cf.globalFlags()
+	cf.versionCommands()
+	cf.caCommands()
+	cf.certCommands()
+	cf.configCommands()
+
+	return cf.Cli
 }
 
 func (c *CommandFactory) versionCommands() {
@@ -29,7 +51,7 @@ func (c *CommandFactory) versionCommands() {
 		Use:   "version",
 		Short: "Display version",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(c.Version)
+			fmt.Println(version.GetVersion())
 		},
 	}
 
@@ -255,29 +277,6 @@ func (c *CommandFactory) initClient() {
 func (c *CommandFactory) globalFlags() {
 	c.Cli.Flags().StringVarP(&c.Server, "server", "s", "", "address of vault server (AUTHORITY_VAULT_SERVER)")
 	c.Cli.Flags().StringVarP(&c.Token, "token", "t", "", "vault access token (AUTHORITY_VAULT_TOKEN)")
-}
-
-func New(version string) *cli.CLI {
-	root := &cobra.Command{
-		Short: "Authority is a server providing x509 certificate management",
-		Use:   "authority COMMAND [<args>..] [options]",
-		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
-		},
-	}
-
-	cf := &CommandFactory{
-		Cli:     cli.New(root),
-		Version: version,
-	}
-
-	cf.globalFlags()
-	cf.versionCommands()
-	cf.caCommands()
-	cf.certCommands()
-	cf.configCommands()
-
-	return cf.Cli
 }
 
 func getCertificateName(args []string) string {
