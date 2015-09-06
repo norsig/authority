@@ -87,7 +87,7 @@ func (c *Client) Config(configPath string) error {
 		if err != nil {
 			return fmt.Errorf("authority: cannot store configuration: %v", err)
 		}
-		log.Println("authority: configuration stored")
+		fmt.Println("authority: configuration stored")
 	}
 	return nil
 }
@@ -101,7 +101,7 @@ func (c *Client) Generate(name string) error {
 		return err
 	}
 
-	log.Printf("access token for %s: %s", name, token)
+	fmt.Printf("access token for %s: %s", name, token)
 	return nil
 }
 
@@ -114,26 +114,15 @@ func (c *Client) Generate(name string) error {
 //
 // The certificate, key and root certificate will be displayed or stored in a
 // PEM encoded format.
-func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) error {
+func (c *Client) Get(name string, printCert bool, printKey bool) error {
 	cert, err := c.api.Get(name)
 	if err != nil {
 		return err
 	}
 
-	root, err := c.api.GetCA()
+	_, err = c.api.GetCA()
 	if err != nil {
 		return err
-	}
-
-	caCert := authority.CertificatePEM(root.ClientCertificate.Certificate)
-	if printCA {
-		fmt.Println(caCert)
-		return nil
-	} else {
-		err = c.writeFile(filepath.Join(c.certsDir, "ca.crt"), caCert)
-		if err != nil {
-			return err
-		}
 	}
 
 	certCert := authority.CertificatePEM(cert.Certificate)
@@ -158,8 +147,8 @@ func (c *Client) Get(name string, printCA bool, printCert bool, printKey bool) e
 		}
 	}
 
-	if !(printCA || printCert || printKey) {
-		log.Println("authority: stored certificate information")
+	if !(printCert || printKey) {
+		fmt.Println("authority: stored certificate information")
 	}
 
 	return nil
@@ -173,8 +162,14 @@ func (c *Client) Revoke(name string) error {
 	if err != nil {
 		return err
 	}
-	log.Println("certificate", name, "revoked")
+	fmt.Println("certificate", name, "revoked")
 	return nil
+}
+
+// Generate the root certificate if it does not exist already.
+func (c *Client) GenerateCA() error {
+	_, err := c.api.GetCA()
+	return err
 }
 
 // CA retrieves and either displays or stores on the filesystem the
@@ -228,7 +223,7 @@ func (c *Client) CA(printCert bool, printKey bool, printCRL bool) error {
 		}
 	}
 
-	log.Println("certificate authority information stored")
+	fmt.Println("certificate authority information stored")
 	return nil
 }
 
