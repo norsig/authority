@@ -121,7 +121,7 @@ func (c *CommandFactory) caCommands() {
 		},
 	}
 
-	c.Cli.AddTopic("ca", "manage root certificate", false).
+	c.Cli.AddTopic("ca", "manage root certificate", true).
 		AddCommand(caCommand).
 		AddCommand(caCreateCommand).
 		AddCommand(caCertCommand).
@@ -205,7 +205,7 @@ func (c *CommandFactory) certCommands() {
 		},
 	}
 
-	c.Cli.AddTopic("cert", "manage client certificates", false).
+	c.Cli.AddTopic("cert", "manage client certificates", true).
 		AddCommand(certCommand).
 		AddCommand(certCreateCommand).
 		AddCommand(certCertCommand).
