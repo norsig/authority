@@ -71,8 +71,9 @@ func testConfig() *config.Config {
 	}
 }
 
-func TestApiClientNoConfig(t *testing.T) {
+func TestApiClientWithConfig(t *testing.T) {
 	server, token, mutex, done := getVaultInfo(t)
+
 	api, err := NewClient(server, token, nil)
 	if err != nil {
 		t.Fatal("error initializing client %v", err)
@@ -83,36 +84,12 @@ func TestApiClientNoConfig(t *testing.T) {
 		t.Fatal("config shouldn't exist")
 	}
 
-	mutex.Unlock()
-	foo := <-done
-	fmt.Println("done", foo)
-}
-
-func TestApiClientWithConfig(t *testing.T) {
-	server, token, mutex, done := getVaultInfo(t)
-	api, err := NewClient(server, token, testConfig())
+	api, err = NewClient(server, token, testConfig())
 	if err != nil {
 		t.Fatalf("error initializing client %v", err)
 	}
 
-	c, err := api.GetConfig()
-	if c == nil || (err != nil) {
-		t.Fatal("config should exist")
-	}
-
-	mutex.Unlock()
-	foo := <-done
-	fmt.Println("done", foo)
-}
-
-func TestCAGenerateAndGet(t *testing.T) {
-	server, token, mutex, done := getVaultInfo(t)
-	api, err := NewClient(server, token, testConfig())
-	if err != nil {
-		t.Fatalf("error initializing client %v", err)
-	}
-
-	c, err := api.GetConfig()
+	c, err = api.GetConfig()
 	if c == nil || (err != nil) {
 		t.Fatal("config should exist")
 	}
