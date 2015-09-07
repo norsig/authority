@@ -20,6 +20,7 @@ type Cert struct {
 	CommonName string
 	IsRoot     bool
 	Backend    backend.Backend
+	ParentName string
 
 	certificate *x509.Certificate
 	privateKey  *rsa.PrivateKey
@@ -32,8 +33,13 @@ type Cert struct {
 // GetCA returns the root certificate, creating it if it does not already
 // exist.
 func GetCA(backend backend.Backend, config *config.Config) (*Cert, error) {
+	return GetCert("ca", backend, config)
+}
+
+// GetCertificate returns the certificate with the supplied if it already exists.
+func GetCert(name string, backend backend.Backend, config *config.Config) (*Cert, error) {
 	cert := &Cert{
-		CommonName: "ca",
+		CommonName: name,
 		IsRoot:     true,
 		Backend:    backend,
 		Config:     config,
@@ -41,9 +47,13 @@ func GetCA(backend backend.Backend, config *config.Config) (*Cert, error) {
 
 	// we'll implicitly make a CA cert
 	if !cert.Exists() {
-		err := cert.Create()
-		if err != nil {
-			return nil, err
+		if name == "ca" {
+			err := cert.Create()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, ErrCertNotFound
 		}
 	}
 
@@ -184,7 +194,7 @@ func (c *Cert) Create() error {
 		return nil
 	}
 
-	creationFunc := ssl.CreateCertificateRequest
+	creationFunc := ssl.CreateCertificate
 	if c.IsRoot {
 		creationFunc = ssl.CreateCA
 	}

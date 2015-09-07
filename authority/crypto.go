@@ -44,9 +44,9 @@ func (c *Crypto) CreateCA() (*x509.Certificate, *rsa.PrivateKey, error) {
 	return cert, key, nil
 }
 
-// CreateCertificateRequest creates a new certificate and private key. The
+// CreateCertificate creates a new certificate and private key. The
 // certificate will be signed by the root certificate.
-func (c *Crypto) CreateCertificateRequest() (*x509.Certificate, *rsa.PrivateKey, error) {
+func (c *Crypto) CreateCertificate() (*x509.Certificate, *rsa.PrivateKey, error) {
 	if c.Cert.Config == nil {
 		return nil, nil, errors.New("configuration not available")
 	}
@@ -61,10 +61,6 @@ func (c *Crypto) CreateCertificateRequest() (*x509.Certificate, *rsa.PrivateKey,
 	}
 
 	key := c.makePrivateKey(keySize)
-
-	// TODO: what are we doing with this CSR?
-	_ = c.makeCSR(subject, key)
-
 	certBytes := c.makeCert(false, subject, key)
 	cert, err := x509.ParseCertificate(certBytes)
 	if err != nil {
@@ -94,22 +90,12 @@ func (c *Crypto) makePrivateKey(bits int) *rsa.PrivateKey {
 	return privateKey
 }
 
-func (c *Crypto) makeCSR(subject *pkix.Name, key *rsa.PrivateKey) []byte {
-	certReq := &x509.CertificateRequest{
-		PublicKey:          key,
-		SignatureAlgorithm: x509.SHA256WithRSA,
-		Subject:            *subject,
-	}
-
-	csr, err := x509.CreateCertificateRequest(rand.Reader, certReq, key)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	return csr
-}
-
 func (c *Crypto) makeCert(isCA bool, subject *pkix.Name, key *rsa.PrivateKey) []byte {
+	var parent *x509.Certificate = nil
+	var parentKey *rsa.PrivateKey = nil
+	var signingCert *Cert
+	var err error
+
 	now := time.Now()
 	template := x509.Certificate{
 		SerialNumber:       c.Backend.GetNextSerialNumber(),
@@ -119,24 +105,25 @@ func (c *Crypto) makeCert(isCA bool, subject *pkix.Name, key *rsa.PrivateKey) []
 		NotAfter:           now.AddDate(10, 0, 0).UTC(),
 	}
 
-	var parent *x509.Certificate = nil
-	var parentKey *rsa.PrivateKey = nil
+	template.KeyUsage |= x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign
+	template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
+	template.IsCA = true
+	template.BasicConstraintsValid = true
 
 	if isCA {
-		template.IsCA = true
-		template.KeyUsage |= x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign
-		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
-		template.BasicConstraintsValid = true
-		template.MaxPathLen = 0
 		parent = &template
 		parentKey = key
 	} else {
-		ca, err := GetCA(c.Backend, c.Config)
+		if c.ParentName != "" {
+			signingCert, err = GetCert(c.ParentName, c.Backend, c.Config)
+		} else {
+			signingCert, err = GetCA(c.Backend, c.Config)
+		}
 		if err != nil {
 			return nil
 		}
-		parent = ca.GetCertificate()
-		parentKey = ca.GetPrivateKey()
+		parent = signingCert.GetCertificate()
+		parentKey = signingCert.GetPrivateKey()
 		template.Issuer = parent.Subject
 	}
 

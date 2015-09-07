@@ -220,3 +220,55 @@ func TestVerifyCertificate(t *testing.T) {
 		t.Fatal("failed to verify certificate: " + err.Error())
 	}
 }
+
+func TestVerifyChainedCertificate(t *testing.T) {
+	backend, config := testAuthorityConfig(t)
+	cert := &Cert{
+		CommonName: "foo",
+		Backend:    backend,
+		Config:     config,
+	}
+
+	if err := cert.Create(); err != nil {
+		t.Fatal("cert creation failed:", err)
+	}
+
+	cert1 := &Cert{
+		CommonName: "bar",
+		Backend:    backend,
+		Config:     config,
+		ParentName: "foo",
+	}
+
+	if err := cert1.Create(); err != nil {
+		t.Fatal("cert creation failed:", err)
+	}
+
+	ca, err := GetCA(backend, config)
+	if err != nil {
+		t.Fatal("can't get ca:", err)
+	}
+
+	roots := x509.NewCertPool()
+	roots.AddCert(cert.GetCertificate())
+	opts := x509.VerifyOptions{
+		Roots: roots,
+	}
+
+	if _, err := cert1.GetCertificate().Verify(opts); err != nil {
+		t.Fatal("failed to verify certificate: " + err.Error())
+	}
+
+	roots = x509.NewCertPool()
+	roots.AddCert(ca.GetCertificate())
+	intermediates := x509.NewCertPool()
+	intermediates.AddCert(cert.GetCertificate())
+	opts = x509.VerifyOptions{
+		Roots:         roots,
+		Intermediates: intermediates,
+	}
+
+	if _, err := cert1.GetCertificate().Verify(opts); err != nil {
+		t.Fatal("failed to verify certificate: " + err.Error())
+	}
+}
