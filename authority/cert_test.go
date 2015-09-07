@@ -191,3 +191,32 @@ func TestImplicitCACreate(t *testing.T) {
 		t.Fatal("ca doesn't exist")
 	}
 }
+
+func TestVerifyCertificate(t *testing.T) {
+	backend, config := testAuthorityConfig(t)
+	cert := &Cert{
+		CommonName: "foo",
+		Backend:    backend,
+		Config:     config,
+	}
+
+	if err := cert.Create(); err != nil {
+		t.Fatal("cert creation failed:", err)
+	}
+
+	ca, err := GetCA(backend, config)
+	if err != nil {
+		t.Fatal("can't get ca:", err)
+	}
+
+	roots := x509.NewCertPool()
+	roots.AddCert(ca.GetCertificate())
+
+	opts := x509.VerifyOptions{
+		Roots: roots,
+	}
+
+	if _, err := cert.GetCertificate().Verify(opts); err != nil {
+		t.Fatal("failed to verify certificate: " + err.Error())
+	}
+}

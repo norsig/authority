@@ -126,6 +126,8 @@ func (c *Crypto) makeCert(isCA bool, subject *pkix.Name, key *rsa.PrivateKey) []
 		template.IsCA = true
 		template.KeyUsage |= x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign
 		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
+		template.BasicConstraintsValid = true
+		template.MaxPathLen = 0
 		parent = &template
 		parentKey = key
 	} else {
