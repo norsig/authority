@@ -149,7 +149,7 @@ func (c *Client) Get(name string) (*ClientCertificate, error) {
 	}, nil
 }
 
-// Revoke adds the certificate with the provided common name to the root
+// Revoke adds the certificate with the provided common name to the signing
 // certificate's certificate revocation list, assuming that the indicated
 // certificate exists.
 func (c *Client) Revoke(name string) error {
