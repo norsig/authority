@@ -108,7 +108,7 @@ func (c *Client) Generate(name string, parent string) (*Certificate, string, err
 		Config:     c.config,
 	}
 
-	if parent != "" {
+	if parent == "" {
 		cert.ParentName = "ca"
 	} else {
 		cert.ParentName = parent

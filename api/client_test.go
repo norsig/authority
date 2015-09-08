@@ -193,75 +193,22 @@ func TestApiClientWithChildCert(t *testing.T) {
 		t.Fatal("config should exist")
 	}
 
-	root, err := api.GetCA()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if root.CommonName != "ca" {
-		t.Fatal("root cert has wrong name")
-	}
-
-	if root.Certificate == nil {
-		t.Fatal("don't have root certificate")
-	}
-
-	if root.PrivateKey == nil {
-		t.Fatal("don't have root private key")
-	}
-
-	client, token, err := api.Generate("foobar", "")
+	client, token, err := api.Generate("foo", "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if client.CommonName != "foobar" {
+	if client.CommonName != "foo" {
 		t.Fatal("got an unexpected cert name")
 	}
 
-	if client.Certificate == nil {
-		t.Fatal("don't have client certificate")
-	}
-
-	if client.PrivateKey == nil {
-		t.Fatal("don't have client private key")
-	}
-
-	client2, err := api.Get("foobar")
+	client2, token, err := api.Generate("bar", "foo")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if client2.CommonName != client.CommonName {
-		t.Fatal("got an unexpected cert name")
-	}
-
-	if !bytes.Equal(client2.Certificate.Raw, client.Certificate.Raw) {
-		t.Fatal("got unexpected certificate")
-	}
-
-	if client2.PrivateKey.D == client.PrivateKey.D {
-		t.Fatal("got unexpected private key")
-	}
-
-	client3, token2, err := api.Generate("foobar", "")
-	if token2 != "" {
-		t.Fatal("expected empty token")
-	}
-
-	if err != authority.ErrCertAlreadyExists {
-		t.Fatal("expected error for duplicate certificate")
-	}
-
-	if client2.CommonName != client3.CommonName {
-		t.Fatal("got an unexpected cert name")
-	}
-
-	if !bytes.Equal(client2.Certificate.Raw, client3.Certificate.Raw) {
-		t.Fatal("got unexpected certificate")
-	}
-
-	if client2.PrivateKey.D == client3.PrivateKey.D {
-		t.Fatal("got unexpected private key")
+	if client2.Certificate.Issuer.CommonName != client.CommonName {
+		t.Fatalf("expected issuer name of %s but got %s instead", client.CommonName, client2.Certificate.Issuer.CommonName)
 	}
 
 	mutex.Unlock()
