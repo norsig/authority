@@ -8,7 +8,7 @@ build: generate
 	@cp $(PREFIX)/$(PROGRAM) $(GOPATH)/$(PREFIX)/$(PROGRAM) || true
 
 test: generate
-	@godep go test -v ./... -race --timeout=40s
+	@godep go test -v ./... -race --timeout=60s
 
 generate:
 	@godep go generate ./...
