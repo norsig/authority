@@ -12,18 +12,13 @@ import (
 	"github.com/ovrclk/authority/config"
 )
 
-// Represents a client x509 certificate and corresponding private key.
-type ClientCertificate struct {
+// Represents an x509 certificate as well as corresponding private key and
+// certificate revocation list.
+type Certificate struct {
 	CommonName  string
 	Certificate *x509.Certificate
 	PrivateKey  *rsa.PrivateKey
-}
-
-// Represents a root signing x509 certificate and corresponding private key
-// and certificate revocation list.
-type RootCertificate struct {
-	*ClientCertificate
-	CRL *pkix.CertificateList
+	CRL         *pkix.CertificateList
 }
 
 // Client provides an API for creating, storing, retrieving and revoking x509
@@ -94,10 +89,14 @@ func (c *Client) SetConfig(config *config.Config) error {
 //
 // If there is already an existing certificate with the same name, Generate
 // will return that certificate, as well as an error.
-func (c *Client) Generate(name string) (*ClientCertificate, string, error) {
+//
+// If Generate is provided with a parent name, the certificate will be signed
+// by the certificate with the provided parent name if it exists. An empty
+// string will create a certificate signed by the root certificate.
+func (c *Client) Generate(name string, parent string) (*Certificate, string, error) {
 	var err error
 	var token string
-	var clientCert *ClientCertificate
+	var clientCert *Certificate
 
 	if !nameIsValid(name) {
 		return nil, "", fmt.Errorf("authority: %s is a restricted name", name)
@@ -107,6 +106,12 @@ func (c *Client) Generate(name string) (*ClientCertificate, string, error) {
 		CommonName: name,
 		Backend:    c.backend,
 		Config:     c.config,
+	}
+
+	if parent != "" {
+		cert.ParentName = "ca"
+	} else {
+		cert.ParentName = parent
 	}
 
 	if cert.Exists() {
@@ -131,7 +136,7 @@ func (c *Client) Generate(name string) (*ClientCertificate, string, error) {
 }
 
 // Get retrieves a previously generated x509 certificate.
-func (c *Client) Get(name string) (*ClientCertificate, error) {
+func (c *Client) Get(name string) (*Certificate, error) {
 	cert := &authority.Cert{
 		CommonName: name,
 		Backend:    c.backend,
@@ -142,7 +147,7 @@ func (c *Client) Get(name string) (*ClientCertificate, error) {
 		return nil, authority.ErrCertNotFound
 	}
 
-	return &ClientCertificate{
+	return &Certificate{
 		CommonName:  cert.CommonName,
 		Certificate: cert.GetCertificate(),
 		PrivateKey:  cert.GetPrivateKey(),
@@ -177,7 +182,7 @@ func (c *Client) Revoke(name string) error {
 }
 
 // GetCA retrieves the root certificate, private key and certificate revocation list.
-func (c *Client) GetCA() (*RootCertificate, error) {
+func (c *Client) GetCA() (*Certificate, error) {
 	cert, err := authority.GetCA(c.backend, c.config)
 	if err != nil {
 		return nil, err
@@ -194,13 +199,11 @@ func (c *Client) GetCA() (*RootCertificate, error) {
 		}
 	}
 
-	return &RootCertificate{
-		ClientCertificate: &ClientCertificate{
-			CommonName:  cert.CommonName,
-			Certificate: cert.GetCertificate(),
-			PrivateKey:  cert.GetPrivateKey(),
-		},
-		CRL: crl,
+	return &Certificate{
+		CommonName:  cert.CommonName,
+		Certificate: cert.GetCertificate(),
+		PrivateKey:  cert.GetPrivateKey(),
+		CRL:         crl,
 	}, nil
 }
 

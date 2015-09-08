@@ -144,7 +144,7 @@ func (c *CommandFactory) certCommands() {
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
 			name := getCertificateName(args)
-			err := c.Client.Generate(name)
+			err := c.Client.Generate(name, rootName)
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
