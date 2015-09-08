@@ -82,8 +82,8 @@ func (f *File) GetCertificate(name string) (*x509.Certificate, error) {
 }
 
 // Load the root certificate revocation list from the filesystem.
-func (f *File) GetCRLRaw() []byte {
-	bytes, err := f.readFile(f.crlPath())
+func (f *File) GetCRLRaw(name string) []byte {
+	bytes, err := f.readFile(f.crlPath(name))
 	if err != nil && os.IsExist(err) {
 		return nil
 	}
@@ -140,14 +140,14 @@ func (f *File) PutPrivateKey(name string, key *rsa.PrivateKey) error {
 
 // Store the provided certificate revocation list in raw byte format on the
 // filesystem.
-func (f *File) PutCRL(crlBytes []byte) error {
-	return f.writeFileRaw(f.crlPath(), crlBytes)
+func (f *File) PutCRL(name string, crlBytes []byte) error {
+	return f.writeFileRaw(f.crlPath(name), crlBytes)
 }
 
 // private functionality
 
-func (f *File) crlPath() string {
-	return filepath.Join(f.Path, "crl.crl")
+func (f *File) crlPath(name string) string {
+	return filepath.Join(f.Path, fmt.Sprintf("%s_crl.crl", name))
 }
 
 func (f *File) serialNumberPath() string {

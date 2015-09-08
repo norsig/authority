@@ -17,33 +17,6 @@ type Crypto struct {
 	*Cert
 }
 
-// CreateCA creates a root signing certificate given the previously provided
-// configuration.
-func (c *Crypto) CreateCA() (*x509.Certificate, *rsa.PrivateKey, error) {
-	if c.Cert.Config == nil {
-		return nil, nil, errors.New("configuration not available")
-	}
-	d := &c.Cert.Config.Defaults
-	subject := &pkix.Name{
-		Country:            []string{d.Country},
-		Organization:       []string{d.Org},
-		OrganizationalUnit: []string{d.OrgUnit},
-		Locality:           []string{d.City},
-		Province:           []string{d.Region},
-		CommonName:         "ca",
-	}
-
-	key := c.makePrivateKey(keySize)
-
-	certBytes := c.makeCert(true, subject, key)
-	cert, err := x509.ParseCertificate(certBytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return cert, key, nil
-}
-
 // CreateCertificate creates a new certificate and private key. The
 // certificate will be signed by the root certificate.
 func (c *Crypto) CreateCertificate() (*x509.Certificate, *rsa.PrivateKey, error) {
@@ -61,7 +34,7 @@ func (c *Crypto) CreateCertificate() (*x509.Certificate, *rsa.PrivateKey, error)
 	}
 
 	key := c.makePrivateKey(keySize)
-	certBytes := c.makeCert(false, subject, key)
+	certBytes := c.makeCert(subject, key)
 	cert, err := x509.ParseCertificate(certBytes)
 	if err != nil {
 		return nil, nil, err
@@ -90,7 +63,7 @@ func (c *Crypto) makePrivateKey(bits int) *rsa.PrivateKey {
 	return privateKey
 }
 
-func (c *Crypto) makeCert(isCA bool, subject *pkix.Name, key *rsa.PrivateKey) []byte {
+func (c *Crypto) makeCert(subject *pkix.Name, key *rsa.PrivateKey) []byte {
 	var parent *x509.Certificate = nil
 	var parentKey *rsa.PrivateKey = nil
 	var signingCert *Cert
@@ -110,15 +83,15 @@ func (c *Crypto) makeCert(isCA bool, subject *pkix.Name, key *rsa.PrivateKey) []
 	template.IsCA = true
 	template.BasicConstraintsValid = true
 
-	if isCA {
+	if c.ParentName == "" {
+		c.ParentName = "ca"
+	}
+
+	if subject.CommonName == "ca" {
 		parent = &template
 		parentKey = key
 	} else {
-		if c.ParentName != "" {
-			signingCert, err = GetCert(c.ParentName, c.Backend, c.Config)
-		} else {
-			signingCert, err = GetCA(c.Backend, c.Config)
-		}
+		signingCert, err = GetCert(c.ParentName, c.Backend, c.Config)
 		if err != nil {
 			return nil
 		}

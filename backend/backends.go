@@ -21,7 +21,7 @@ type Backend interface {
 	CreateTokenForCertificate(name string) (string, error)
 	GetConfig() (*config.Config, error)
 	GetCertificate(name string) (*x509.Certificate, error)
-	GetCRLRaw() []byte
+	GetCRLRaw(name string) []byte
 	GetNextSerialNumber() *big.Int
 	GetPrivateKey(name string) (*rsa.PrivateKey, error)
 
@@ -29,5 +29,5 @@ type Backend interface {
 	PutConfig(config string) error
 	PutCertificate(name string, cert *x509.Certificate) error
 	PutPrivateKey(name string, key *rsa.PrivateKey) error
-	PutCRL(crlBytes []byte) error
+	PutCRL(name string, crlBytes []byte) error
 }
