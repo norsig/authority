@@ -175,7 +175,7 @@ General Options:
 Additional commands, type "ovrclk COMMAND --help" for more details:
 
   config:get                 Get authority configuration
-  config:set [<key> <value>] Set authority configuration, either a single value or a file with multiple values
+  config:set [<key> <value> | -f <file>] Set authority configuration, either a single value or a file with multiple values
 ```
 
 ## Development
