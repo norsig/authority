@@ -17,82 +17,165 @@ Install the appropriate package and follow the below to get started
   $ export AUTHORITY_VAULT_TOKEN=377e1028-9320-913e-9dc6-16a4c341a8e5
   ```
 
-3. Generate a root certificate, and store locally (`~/.authority` by default)
+3. Configure Authority:
 
   ```
-  $ authority ca
-  2015/05/22 22:01:52 creating certificate for ca
-  2015/05/22 22:01:55 created certificate for ca
-  2015/05/22 22:01:55 certificate authority information stored
+  $ authority config:set
+    root_domain: ovrclk.com
+          email: hello@ovrclk.com
+            org: Ovrclk
+       org_unit: Infrastructure
+           city: San Francisco
+         region: California
+        country: US
+       crl_days: 3650
+         digest: sha256
+    cert_expiry: 3650
+   authority: configuration stored
   ```
 
-4. Generate a client certificate
+4. Generate a root certificate
 
   ```
-  $ authority generate myclient
-  2015/05/22 22:01:59 creating certificate for myclient
-  2015/05/22 22:01:59 created certificate for myclient
-  2015/05/22 22:01:59 access token for myclient: cb88a027-6c13-816d-0031-3ffb2a61080f
+  $ authority ca:create
+  Root certificate created, or exists
   ```
 
-5. Use the newly generated restricted access token to get and store the certificate locally
+5. Retrieve the certificate and key
 
   ```
-  $ AUTHORITY_VAULT_TOKEN=cb88a027-6c13-816d-0031-3ffb2a61080f authority get myclient
-  2015/05/22 22:03:31 certificate myclient stored
+  $ authority ca:cert
+  -----BEGIN CERTIFICATE-----
+  MIIDnzCCAoegAwIBAgIBATANBgk...
+  -----END CERTIFICATE-----
+
+  $ authority ca:key
+  -----BEGIN RSA PRIVATE KEY-----
+  MIIEpgIBAAKCAQEAvrREShntqhv...
+  -----END RSA PRIVATE KEY-----
   ```
 
-  Alternatively you can output the cert, key, CA cert, or CRL to stdout, i.e.:
+6. Generate a client certificate
 
   ```
-  $ AUTHORITY_VAULT_TOKEN=cb88a027-6c13-816d-0031-3ffb2a61080f authority get cert myclient
------BEGIN CERTIFICATE-----
-MIIDQDCCAiqgAwIBAgIBAjALBgkqhkiG9w0BAQswYzEQMA4GA1UEBhMHQ291bnRy
-....
-GfwyBOiYDpd6FJXBaJBmXGYy8FM=
------END CERTIFICATE-----
+  $ authority cert:create my_client
+  access token for client: 6651b042-ae7b-d862-e9e7-f446c11a8a39
   ```
 
-6. Revoke a client certificate
+7. Use the newly generated restricted access token to get and store the certificate locally
 
   ```
-  $ authority revoke foo
-  2015/05/22 22:05:39 certificate myclient revoked
+  $ AUTHORITY_VAULT_TOKEN=6651b042-ae7b-d862-e9e7-f446c11a8a39 authority cert:cert my_client
+  -----BEGIN CERTIFICATE-----
+  MIIDozCCAougAwIBAgIBAjANB...
+  -----END CERTIFICATE-----
+
+  $ AUTHORITY_VAULT_TOKEN=6651b042-ae7b-d862-e9e7-f446c11a8a39 authority cert:key my_client
+  -----BEGIN RSA PRIVATE KEY-----
+  MIIEpAIBAAKCAQEAyVn3fxtAuO3...
+  -----END RSA PRIVATE KEY-----
   ```
 
-7. Get CA information again, with your updated CRL
+8. Revoke a client certificate
 
   ```
-  $ authority ca
-  2015/05/22 22:05:57 certificate authority information stored
+  $ authority cert:revoke my_client
+  certificate my_client revoked
+  ```
+
+9. Get the updated CRL
+
+  ```
+  $ authority ca:crl > crl.der
   ```
 
 ### Getting help
 
-```
-$ authority --help
-Usage: authority config [<configfile>] [--server=SERVER --token=TOKEN]
-       authority (generate|revoke) <name> [--server=SERVER --token=TOKEN]
-       authority get [ca|cert|key]  <name> [--server=SERVER --token=TOKEN]
-       authority ca [cert|key|crl] [--server=SERVER --token=TOKEN]
+Top level help
 
+```
+$ authority help
 Authority is a server providing x509 certificate management
 
-Commands:
+Usage: authority COMMAND [<args>..] [options]
 
-    config     Display or set authority configuration
-    generate   Generate a signed client certificate and access token
-    get        Get a signed client certificate
-    revoke     Revoke an existing signed client certificate
-    ca         Get certificate authority files
+Primary help topics, type "authority help TOPIC" for more details:
+
+  ca      manage root certificate
+  cert    manage client certificates
+
+Additional topics:
+
+  config  edit certificate configuration settings
+  version display version
+```
+
+`ca` command help
+
+```
+$ authority help ca
+Usage: authority ca [options]
 
 Options:
 
-  --server=SERVER   Address of authority server (AUTHORITY_VAULT_SERVER)
-                    [default: https://localhost:8200]
-  --token=TOKEN     Vault access token (AUTHORITY_VAULT_TOKEN)
-  --help            Display this message
-  --version         Show version and exit
+  -h, --help=false: help for ca
+
+General Options:
+
+  -s, --server="": address of vault server (AUTHORITY_VAULT_SERVER)
+  -t, --token="": vault access token (AUTHORITY_VAULT_TOKEN)
+
+Additional commands, type "ovrclk COMMAND --help" for more details:
+
+  ca:create Create root certificate
+  ca:cert   Get root certificate
+  ca:key    Get root certificate private key
+  ca:crl    Get root certificate revocation list
+```
+
+`cert` command help
+
+```
+$ authority help cert
+Usage: authority cert [options]
+
+Options:
+
+  -h, --help=false: help for cert
+
+General Options:
+
+  -s, --server="": address of vault server (AUTHORITY_VAULT_SERVER)
+  -t, --token="": vault access token (AUTHORITY_VAULT_TOKEN)
+
+Additional commands, type "ovrclk COMMAND --help" for more details:
+
+  cert:create <name> [--root <rootname>] Create certificate
+  cert:cert <name>                       Get certificate
+  cert:key <name>                        Get certificate private key
+  cert:revoke <name>                     Revoke certificate
+  cert:crl <name>                        Get certificate revocation list
+```
+
+`config` command help
+
+```
+$ authority help config
+Usage: authority config [options]
+
+Options:
+
+  -h, --help=false: help for config
+
+General Options:
+
+  -s, --server="": address of vault server (AUTHORITY_VAULT_SERVER)
+  -t, --token="": vault access token (AUTHORITY_VAULT_TOKEN)
+
+Additional commands, type "ovrclk COMMAND --help" for more details:
+
+  config:get                 Get authority configuration
+  config:set [<key> <value>] Set authority configuration, either a single value or a file with multiple values
 ```
 
 ## Development
@@ -101,12 +184,11 @@ For local dev first make sure Go is properly installed, including setting up a [
 
 - [Git](http://git-scm.com/)
 - [Mercurial](http://mercurial.selenic.com/)
+- [Godep](https://github.com/tools/godep)
 
-Next, clone this repository into `$GOPATH/src/github.com/ovrclk/authority`. Install the necessary dependencies by running `make updatedeps` and then just type `make`. This will compile some more dependencies and then run the tests. If this exits with exit status 0, then everything is working!
+Next, clone this repository into `$GOPATH/src/github.com/ovrclk/authority`. Just type `make` to build and run tests. If this exits with exit status 0, then everything is working!
 
 ```
-$ make updatedeps
-...
 $ make
 ...
 ```
@@ -114,7 +196,7 @@ $ make
 To compile a development version of Authority, run `make dev`. This will put Authority binaries in the `bin` and `$GOPATH/bin` folders:
 
 ```
-$ make dev
+$ make build
 ...
 $ bin/authority
 ...
