@@ -1,10 +1,12 @@
 package client
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/ovrclk/authority/api"
 	"github.com/ovrclk/authority/authority"
@@ -58,11 +60,64 @@ func (c *Client) SetConfig(configPath string) error {
 	return nil
 }
 
+func (c *Client) SetConfigItem(key, value string) error {
+	if !config.KeyIsValid(key) {
+		return fmt.Errorf("authority: \"%s\" is not a valid configuration key", key)
+	}
+	cfg, err := c.api.GetConfig()
+	if err != nil && err != authority.ErrConfigMissing {
+		return err
+	}
+	if cfg == nil {
+		cfg = &config.Config{}
+	}
+
+	cfg.SetItem(key, value)
+
+	err = c.api.SetConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("authority: cannot store configuration: %v", err)
+	}
+	fmt.Println("authority: configuration stored")
+	return nil
+}
+
+func (c *Client) SetAllConfig() error {
+	cfg, err := c.api.GetConfig()
+	if err != nil && err != authority.ErrConfigMissing {
+		return err
+	}
+	if cfg == nil {
+		cfg = &config.Config{}
+	}
+
+	r := bufio.NewReader(os.Stdin)
+	for _, v := range cfg.GetConfigKeys() {
+		fmt.Printf("%12s: ", v)
+		input, err := r.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		cfg.SetItem(v, strings.TrimSpace(input))
+	}
+
+	err = c.api.SetConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("authority: cannot store configuration: %v", err)
+	}
+	fmt.Println("authority: configuration stored")
+	return nil
+
+}
+
 // GetConfig displays the stored config, if it exists.
 func (c *Client) GetConfig() error {
 	cfg, err := c.api.GetConfig()
-	if err != nil {
+	if err != nil && err != authority.ErrConfigMissing {
 		return err
+	}
+	if cfg == nil {
+		cfg = &config.Config{}
 	}
 	configStr, err := cfg.ToString()
 	if err != nil {

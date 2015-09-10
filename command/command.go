@@ -229,20 +229,38 @@ func (c *CommandFactory) configCommands() {
 		Short: "Get authority configuration",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
-			c.Client.GetConfig()
+			err := c.Client.GetConfig()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
 		},
 	}
 
 	configSetCommand := &cobra.Command{
-		Use:   "config:set",
-		Short: "Set authority configuration",
+		Use:   "config:set [<key> <value>]",
+		Short: "Set authority configuration, either a single value or a file with multiple values",
 		Run: func(cmd *cobra.Command, args []string) {
-			if filePath == "" {
-				fmt.Println("You must provide a file name")
-				os.Exit(1)
+			c.initClient()
+			var err error
+			if len(args) == 2 {
+				key := args[0]
+				val := args[1]
+				err = c.Client.SetConfigItem(key, val)
+			} else if len(args) == 0 {
+				if filePath != "" {
+					err = c.Client.SetConfig(filePath)
+				} else {
+					err = c.Client.SetAllConfig()
+				}
 			} else {
-				c.initClient()
-				c.Client.SetConfig(filePath)
+				fmt.Println("You must provide a key value pair or file name")
+				os.Exit(1)
+			}
+
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
 			}
 		},
 	}
