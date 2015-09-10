@@ -238,7 +238,7 @@ func (c *CommandFactory) configCommands() {
 	}
 
 	configSetCommand := &cobra.Command{
-		Use:   "config:set [<key> <value>]",
+		Use:   "config:set [<key> <value> | -f <file>]",
 		Short: "Set authority configuration, either a single value or a file with multiple values",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
