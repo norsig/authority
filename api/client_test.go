@@ -71,8 +71,9 @@ func testConfig() *config.Config {
 	}
 }
 
-func TestApiClientNoConfig(t *testing.T) {
+func TestApiClientWithConfig(t *testing.T) {
 	server, token, mutex, done := getVaultInfo(t)
+
 	api, err := NewClient(server, token, nil)
 	if err != nil {
 		t.Fatal("error initializing client %v", err)
@@ -83,36 +84,12 @@ func TestApiClientNoConfig(t *testing.T) {
 		t.Fatal("config shouldn't exist")
 	}
 
-	mutex.Unlock()
-	foo := <-done
-	fmt.Println("done", foo)
-}
-
-func TestApiClientWithConfig(t *testing.T) {
-	server, token, mutex, done := getVaultInfo(t)
-	api, err := NewClient(server, token, testConfig())
+	api, err = NewClient(server, token, testConfig())
 	if err != nil {
 		t.Fatalf("error initializing client %v", err)
 	}
 
-	c, err := api.GetConfig()
-	if c == nil || (err != nil) {
-		t.Fatal("config should exist")
-	}
-
-	mutex.Unlock()
-	foo := <-done
-	fmt.Println("done", foo)
-}
-
-func TestCAGenerateAndGet(t *testing.T) {
-	server, token, mutex, done := getVaultInfo(t)
-	api, err := NewClient(server, token, testConfig())
-	if err != nil {
-		t.Fatalf("error initializing client %v", err)
-	}
-
-	c, err := api.GetConfig()
+	c, err = api.GetConfig()
 	if c == nil || (err != nil) {
 		t.Fatal("config should exist")
 	}
@@ -133,7 +110,7 @@ func TestCAGenerateAndGet(t *testing.T) {
 		t.Fatal("don't have root private key")
 	}
 
-	client, token, err := api.Generate("foobar")
+	client, token, err := api.Generate("foobar", "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -167,7 +144,7 @@ func TestCAGenerateAndGet(t *testing.T) {
 		t.Fatal("got unexpected private key")
 	}
 
-	client3, token2, err := api.Generate("foobar")
+	client3, token2, err := api.Generate("foobar", "")
 	if token2 != "" {
 		t.Fatal("expected empty token")
 	}
@@ -186,6 +163,52 @@ func TestCAGenerateAndGet(t *testing.T) {
 
 	if client2.PrivateKey.D == client3.PrivateKey.D {
 		t.Fatal("got unexpected private key")
+	}
+
+	mutex.Unlock()
+	foo := <-done
+	fmt.Println("done", foo)
+}
+
+func TestApiClientWithChildCert(t *testing.T) {
+	server, token, mutex, done := getVaultInfo(t)
+
+	api, err := NewClient(server, token, nil)
+	if err != nil {
+		t.Fatal("error initializing client %v", err)
+	}
+
+	c, err := api.GetConfig()
+	if c != nil || (err != authority.ErrConfigMissing) {
+		t.Fatal("config shouldn't exist")
+	}
+
+	api, err = NewClient(server, token, testConfig())
+	if err != nil {
+		t.Fatalf("error initializing client %v", err)
+	}
+
+	c, err = api.GetConfig()
+	if c == nil || (err != nil) {
+		t.Fatal("config should exist")
+	}
+
+	client, token, err := api.Generate("foo", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if client.CommonName != "foo" {
+		t.Fatal("got an unexpected cert name")
+	}
+
+	client2, token, err := api.Generate("bar", "foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if client2.Certificate.Issuer.CommonName != client.CommonName {
+		t.Fatalf("expected issuer name of %s but got %s instead", client.CommonName, client2.Certificate.Issuer.CommonName)
 	}
 
 	mutex.Unlock()

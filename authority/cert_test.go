@@ -43,7 +43,6 @@ func TestNewCert(t *testing.T) {
 	backend, config := testAuthorityConfig(t)
 	cert := &Cert{
 		CommonName: "ca",
-		IsRoot:     true,
 		Backend:    backend,
 		Config:     config,
 	}
@@ -61,7 +60,6 @@ func TestCertificateSerialNumbers(t *testing.T) {
 	backend, config := testAuthorityConfig(t)
 	cert := &Cert{
 		CommonName: "foobar1",
-		IsRoot:     true,
 		Backend:    backend,
 		Config:     config,
 	}
@@ -76,7 +74,6 @@ func TestCertificateSerialNumbers(t *testing.T) {
 
 	cert1 := &Cert{
 		CommonName: "foobar2",
-		IsRoot:     true,
 		Backend:    backend,
 		Config:     config,
 	}
@@ -118,7 +115,7 @@ func TestRevokeCert(t *testing.T) {
 	ca, _ := GetCA(backend, config)
 	ca.Revoke(cert.GetCertificate())
 
-	crl := backend.GetCRLRaw()
+	crl := ca.GetCRLRaw()
 	if len(crl) == 0 {
 		t.Fatal("failed to revoke certificate")
 	}
@@ -189,5 +186,146 @@ func TestImplicitCACreate(t *testing.T) {
 
 	if !ca.Exists() {
 		t.Fatal("ca doesn't exist")
+	}
+}
+
+func TestVerifyCertificate(t *testing.T) {
+	backend, config := testAuthorityConfig(t)
+	cert := &Cert{
+		CommonName: "foo",
+		Backend:    backend,
+		Config:     config,
+	}
+
+	if err := cert.Create(); err != nil {
+		t.Fatal("cert creation failed:", err)
+	}
+
+	ca, err := GetCA(backend, config)
+	if err != nil {
+		t.Fatal("can't get ca:", err)
+	}
+
+	roots := x509.NewCertPool()
+	roots.AddCert(ca.GetCertificate())
+
+	opts := x509.VerifyOptions{
+		Roots: roots,
+	}
+
+	if _, err := cert.GetCertificate().Verify(opts); err != nil {
+		t.Fatal("failed to verify certificate: " + err.Error())
+	}
+}
+
+func TestVerifyChainedCertificate(t *testing.T) {
+	backend, config := testAuthorityConfig(t)
+	cert := &Cert{
+		CommonName: "foo",
+		Backend:    backend,
+		Config:     config,
+	}
+
+	if err := cert.Create(); err != nil {
+		t.Fatal("cert creation failed:", err)
+	}
+
+	cert1 := &Cert{
+		CommonName: "bar",
+		Backend:    backend,
+		Config:     config,
+		ParentName: "foo",
+	}
+
+	if err := cert1.Create(); err != nil {
+		t.Fatal("cert creation failed:", err)
+	}
+
+	ca, err := GetCA(backend, config)
+	if err != nil {
+		t.Fatal("can't get ca:", err)
+	}
+
+	roots := x509.NewCertPool()
+	roots.AddCert(cert.GetCertificate())
+	opts := x509.VerifyOptions{
+		Roots: roots,
+	}
+
+	if _, err := cert1.GetCertificate().Verify(opts); err != nil {
+		t.Fatal("failed to verify certificate: " + err.Error())
+	}
+
+	roots = x509.NewCertPool()
+	roots.AddCert(ca.GetCertificate())
+	intermediates := x509.NewCertPool()
+	intermediates.AddCert(cert.GetCertificate())
+	opts = x509.VerifyOptions{
+		Roots:         roots,
+		Intermediates: intermediates,
+	}
+
+	if _, err := cert1.GetCertificate().Verify(opts); err != nil {
+		t.Fatal("failed to verify certificate: " + err.Error())
+	}
+}
+
+func TestRevokeChainedCert(t *testing.T) {
+	backend, config := testAuthorityConfig(t)
+	cert := &Cert{
+		CommonName: "foo",
+		Backend:    backend,
+		Config:     config,
+	}
+
+	if err := cert.Create(); err != nil {
+		t.Fatal("cert creation failed:", err)
+	}
+
+	cert1 := &Cert{
+		CommonName: "bar",
+		Backend:    backend,
+		Config:     config,
+		ParentName: "foo",
+	}
+
+	if err := cert1.Create(); err != nil {
+		t.Fatal("cert creation failed:", err)
+	}
+
+	serial := cert1.GetCertificate().SerialNumber
+
+	cert.Revoke(cert1.GetCertificate())
+
+	crl := cert.GetCRLRaw()
+	if len(crl) == 0 {
+		t.Fatal("failed to revoke certificate")
+	}
+
+	crlList, err := x509.ParseCRL(crl)
+	if err != nil {
+		t.Fatal("error parsing CRL:", err)
+	}
+
+	found := false
+	for rc := range crlList.TBSCertList.RevokedCertificates {
+		revoked := crlList.TBSCertList.RevokedCertificates[rc]
+		fmt.Println("found revoked cert:", revoked.SerialNumber)
+		if revoked.SerialNumber.Cmp(serial) == 0 {
+			found = true
+		}
+	}
+
+	if !found {
+		t.Fatal("didn't find cert in revocation list")
+	}
+
+	ca, err := GetCA(backend, config)
+	if err != nil {
+		t.Fatal("can't get ca")
+	}
+	crl = ca.GetCRLRaw()
+	if len(crl) > 0 {
+		t.Fatal("root cert should have empty crl, but it doesnt")
 	}
 }

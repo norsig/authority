@@ -18,8 +18,8 @@ import (
 // in the case of a root key, it's certificate revocation list.
 type Cert struct {
 	CommonName string
-	IsRoot     bool
 	Backend    backend.Backend
+	ParentName string
 
 	certificate *x509.Certificate
 	privateKey  *rsa.PrivateKey
@@ -32,18 +32,26 @@ type Cert struct {
 // GetCA returns the root certificate, creating it if it does not already
 // exist.
 func GetCA(backend backend.Backend, config *config.Config) (*Cert, error) {
+	return GetCert("ca", backend, config)
+}
+
+// GetCertificate returns the certificate with the supplied if it already exists.
+func GetCert(name string, backend backend.Backend, config *config.Config) (*Cert, error) {
 	cert := &Cert{
-		CommonName: "ca",
-		IsRoot:     true,
+		CommonName: name,
 		Backend:    backend,
 		Config:     config,
 	}
 
 	// we'll implicitly make a CA cert
 	if !cert.Exists() {
-		err := cert.Create()
-		if err != nil {
-			return nil, err
+		if name == "ca" {
+			err := cert.Create()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, ErrCertNotFound
 		}
 	}
 
@@ -127,19 +135,12 @@ func (c *Cert) GetPrivateKey() *rsa.PrivateKey {
 // GetCRLRaw returns a []byte holding the certificate revocation list for
 // this Cert. It returns nil if this Cert is not a root certificate.
 func (c *Cert) GetCRLRaw() []byte {
-	if !c.IsRoot {
-		return nil
-	}
-	return c.Backend.GetCRLRaw()
+	return c.Backend.GetCRLRaw(c.CommonName)
 }
 
 // Revoke adds the provided certificate to this Cert's CRL. If this Cert is
 // not a root certificate, it will return an error.
 func (c *Cert) Revoke(cert *x509.Certificate) error {
-	if !c.IsRoot {
-		return fmt.Errorf("certificate is not a root certificate and has no CRL")
-	}
-
 	bytes := c.GetCRLRaw()
 	if len(bytes) == 0 {
 		c.crl = &pkix.CertificateList{}
@@ -167,7 +168,7 @@ func (c *Cert) Revoke(cert *x509.Certificate) error {
 	}
 
 	newCRL, _ := ca.CreateCRL(rand.Reader, key, currentlyRevoked, time.Now().UTC(), time.Now().UTC().AddDate(10, 0, 0))
-	c.Backend.PutCRL(newCRL)
+	c.Backend.PutCRL(c.CommonName, newCRL)
 
 	return nil
 }
@@ -184,14 +185,9 @@ func (c *Cert) Create() error {
 		return nil
 	}
 
-	creationFunc := ssl.CreateCertificateRequest
-	if c.IsRoot {
-		creationFunc = ssl.CreateCA
-	}
-
 	var err error
 
-	if c.certificate, c.privateKey, err = creationFunc(); err != nil {
+	if c.certificate, c.privateKey, err = ssl.CreateCertificate(); err != nil {
 		return fmt.Errorf("authority: %v", err)
 	}
 

@@ -8,14 +8,37 @@
 			"Rev": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
 		},
 		{
-			"ImportPath": "github.com/docopt/docopt-go",
-			"Comment": "0.6.1-5-g854c423",
-			"Rev": "854c423c810880e30b9fecdabb12d54f4a92f9bb"
+			"ImportPath": "github.com/hashicorp/go-multierror",
+			"Rev": "56912fb08d85084aa318edcf2bba735b97cf35c5"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl",
+			"Rev": "54864211433d45cb780682431585b3e573b49e4a"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/vault/api",
-			"Comment": "v0.1.2-94-g5562fe6",
-			"Rev": "5562fe654f8195fd7998eeea1d6dc689e5973dec"
+			"Comment": "v0.1.2-742-gc3ba4fc",
+			"Rev": "c3ba4fc1473b11ed4440f538d39d21906e195f46"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/mousetrap",
+			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "2caf8efc93669b6c43e0441cdc6aed17546c96f3"
+		},
+		{
+			"ImportPath": "github.com/ovrclk/cli",
+			"Rev": "9837c89bc5b1b13c5ccc8f0f0f33ae0ef0b647d3"
+		},
+		{
+			"ImportPath": "github.com/spf13/cobra",
+			"Rev": "c55cdf33856a08e4822738728b41783292812889"
+		},
+		{
+			"ImportPath": "github.com/spf13/pflag",
+			"Rev": "67cbc198fd11dab704b214c1e629a97af392c085"
 		}
 	]
 }

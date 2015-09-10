@@ -137,8 +137,8 @@ func (v *Vault) GetCertificate(name string) (*x509.Certificate, error) {
 }
 
 // Load the root certificate revocation list from Vault.
-func (v *Vault) GetCRLRaw() []byte {
-	path := "secret/authority/crl"
+func (v *Vault) GetCRLRaw(name string) []byte {
+	path := fmt.Sprintf("secret/authority/crl/%s", name)
 	data, err := v.getBytes(path)
 	if err != nil {
 		return nil
@@ -217,8 +217,8 @@ func (v *Vault) PutPrivateKey(name string, key *rsa.PrivateKey) error {
 }
 
 // Store the provided certificate revocation list in PEM format in Vault.
-func (v *Vault) PutCRL(crlBytes []byte) error {
-	path := "secret/authority/crl"
+func (v *Vault) PutCRL(name string, crlBytes []byte) error {
+	path := fmt.Sprintf("secret/authority/crl/%s", name)
 	return v.putBytes(path, pem.EncodeToMemory(&pem.Block{
 		Type:  "X509 CRL",
 		Bytes: crlBytes,
