@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"strings"
 
@@ -26,7 +27,7 @@ func NewClient(server, token string) *Client {
 
 	c := &Client{}
 
-	c.api, err = api.NewClient(server, token, nil)
+	c.api, err = api.NewClient(server, token)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -130,8 +131,24 @@ func (c *Client) GetConfig() error {
 // Generate creates and a certificate for the provided common name.
 // It will also generate and display a backend access token with granular
 // permissions to access the certificate.
-func (c *Client) Generate(name string, parent string) error {
-	_, token, err := c.api.Generate(name, parent, nil, nil)
+func (c *Client) Generate(name string, parent string, dnsNames string, ipAddresses string) error {
+	var altNames []string
+	for _, name := range strings.Split(dnsNames, ",") {
+		trimmedName := strings.TrimSpace(name)
+		if trimmedName != "" {
+			altNames = append(altNames, trimmedName)
+		}
+	}
+
+	var altIPs []net.IP
+	for _, ipString := range strings.Split(ipAddresses, ",") {
+		ip := net.ParseIP(strings.TrimSpace(ipString))
+		if ip != nil {
+			altIPs = append(altIPs, ip)
+		}
+	}
+
+	_, token, err := c.api.GenerateWithOptions(name, parent, altNames, altIPs)
 	if err != nil {
 		return err
 	}

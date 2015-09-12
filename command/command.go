@@ -138,13 +138,16 @@ func (c *CommandFactory) certCommands() {
 	}
 
 	var rootName string
+	var dnsNames string
+	var ipAddresses string
+
 	certCreateCommand := &cobra.Command{
-		Use:   "cert:create <name> [--root <rootname>]",
+		Use:   "cert:create <name>",
 		Short: "Create certificate",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
 			name := getCertificateName(args)
-			err := c.Client.Generate(name, rootName)
+			err := c.Client.Generate(name, rootName, dnsNames, ipAddresses)
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
@@ -153,6 +156,8 @@ func (c *CommandFactory) certCommands() {
 	}
 
 	certCreateCommand.Flags().StringVarP(&rootName, "root", "r", "ca", "name of root certificate")
+	certCreateCommand.Flags().StringVarP(&dnsNames, "dnsnames", "d", "", "comma separated subject alt dns names")
+	certCreateCommand.Flags().StringVarP(&ipAddresses, "ips", "i", "", "comma separated subject alt ip names")
 
 	certKeyCommand := &cobra.Command{
 		Use:   "cert:key <name>",

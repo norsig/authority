@@ -75,7 +75,7 @@ func testConfig() *config.Config {
 func TestApiClientWithConfig(t *testing.T) {
 	server, token, mutex, done := getVaultInfo(t)
 
-	api, err := NewClient(server, token, nil)
+	api, err := NewClient(server, token)
 	if err != nil {
 		t.Fatal("error initializing client %v", err)
 	}
@@ -85,7 +85,7 @@ func TestApiClientWithConfig(t *testing.T) {
 		t.Fatal("config shouldn't exist")
 	}
 
-	api, err = NewClient(server, token, testConfig())
+	api, err = NewClientWithConfig(server, token, testConfig())
 	if err != nil {
 		t.Fatalf("error initializing client %v", err)
 	}
@@ -111,7 +111,7 @@ func TestApiClientWithConfig(t *testing.T) {
 		t.Fatal("don't have root private key")
 	}
 
-	client, token, err := api.Generate("foobar", "", nil, nil)
+	client, token, err := api.Generate("foobar")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestApiClientWithConfig(t *testing.T) {
 		t.Fatal("got unexpected private key")
 	}
 
-	client3, token2, err := api.Generate("foobar", "", nil, nil)
+	client3, token2, err := api.Generate("foobar")
 	if token2 != "" {
 		t.Fatal("expected empty token")
 	}
@@ -174,7 +174,7 @@ func TestApiClientWithConfig(t *testing.T) {
 func TestApiClientWithChildCert(t *testing.T) {
 	server, token, mutex, done := getVaultInfo(t)
 
-	api, err := NewClient(server, token, nil)
+	api, err := NewClient(server, token)
 	if err != nil {
 		t.Fatal("error initializing client %v", err)
 	}
@@ -184,7 +184,7 @@ func TestApiClientWithChildCert(t *testing.T) {
 		t.Fatal("config shouldn't exist")
 	}
 
-	api, err = NewClient(server, token, testConfig())
+	api, err = NewClientWithConfig(server, token, testConfig())
 	if err != nil {
 		t.Fatalf("error initializing client %v", err)
 	}
@@ -194,7 +194,7 @@ func TestApiClientWithChildCert(t *testing.T) {
 		t.Fatal("config should exist")
 	}
 
-	client, token, err := api.Generate("foo", "", nil, nil)
+	client, token, err := api.Generate("foo")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestApiClientWithChildCert(t *testing.T) {
 		t.Fatal("got an unexpected cert name")
 	}
 
-	client2, token, err := api.Generate("bar", "foo", nil, nil)
+	client2, token, err := api.GenerateWithParent("bar", "foo")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -220,7 +220,7 @@ func TestApiClientWithChildCert(t *testing.T) {
 func TestCertSANs(t *testing.T) {
 	server, token, mutex, done := getVaultInfo(t)
 
-	api, err := NewClient(server, token, nil)
+	api, err := NewClient(server, token)
 	if err != nil {
 		t.Fatal("error initializing client %v", err)
 	}
@@ -230,7 +230,7 @@ func TestCertSANs(t *testing.T) {
 		t.Fatal("config shouldn't exist")
 	}
 
-	api, err = NewClient(server, token, testConfig())
+	api, err = NewClientWithConfig(server, token, testConfig())
 	if err != nil {
 		t.Fatalf("error initializing client %v", err)
 	}
@@ -240,7 +240,7 @@ func TestCertSANs(t *testing.T) {
 		t.Fatal("config should exist")
 	}
 
-	client, token, err := api.Generate("foo", "", []string{"foo.ovrclk.com"}, []net.IP{net.ParseIP("1.2.3.4")})
+	client, token, err := api.GenerateWithOptions("foo", "", []string{"foo.ovrclk.com"}, []net.IP{net.ParseIP("1.2.3.4")})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
