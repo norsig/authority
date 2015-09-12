@@ -87,6 +87,14 @@ func (c *Crypto) makeCert(subject *pkix.Name, key *rsa.PrivateKey) []byte {
 		c.ParentName = "ca"
 	}
 
+	if c.DNSNames != nil {
+		template.DNSNames = c.DNSNames
+	}
+
+	if c.IPAddresses != nil {
+		template.IPAddresses = c.IPAddresses
+	}
+
 	if subject.CommonName == "ca" {
 		parent = &template
 		parentKey = key

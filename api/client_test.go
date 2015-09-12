@@ -110,7 +110,7 @@ func TestApiClientWithConfig(t *testing.T) {
 		t.Fatal("don't have root private key")
 	}
 
-	client, token, err := api.Generate("foobar", "")
+	client, token, err := api.Generate("foobar", "", nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestApiClientWithConfig(t *testing.T) {
 		t.Fatal("got unexpected private key")
 	}
 
-	client3, token2, err := api.Generate("foobar", "")
+	client3, token2, err := api.Generate("foobar", "", nil, nil)
 	if token2 != "" {
 		t.Fatal("expected empty token")
 	}
@@ -193,7 +193,7 @@ func TestApiClientWithChildCert(t *testing.T) {
 		t.Fatal("config should exist")
 	}
 
-	client, token, err := api.Generate("foo", "")
+	client, token, err := api.Generate("foo", "", nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestApiClientWithChildCert(t *testing.T) {
 		t.Fatal("got an unexpected cert name")
 	}
 
-	client2, token, err := api.Generate("bar", "foo")
+	client2, token, err := api.Generate("bar", "foo", nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
