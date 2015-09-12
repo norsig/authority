@@ -18,6 +18,8 @@ const (
 type CommandFactory struct {
 	Cli      *cli.CLI
 	Client   *client.Client
+	Backend  string
+	Path     string
 	Server   string
 	Token    string
 	CertName string
@@ -294,10 +296,17 @@ func (c *CommandFactory) initClient() {
 		c.Token = env_token
 	}
 
-	c.Client = client.NewClient(c.Server, c.Token)
+	if c.Backend != "vault" && c.Backend != "file" {
+		fmt.Println("unrecognized backend:", c.Backend)
+		os.Exit(1)
+	}
+
+	c.Client = client.NewClient(c.Backend, c.Server, c.Token, c.Path)
 }
 
 func (c *CommandFactory) globalFlags() {
+	c.Cli.Flags().StringVarP(&c.Backend, "backend", "b", "vault", "backend type: vault or file")
+	c.Cli.Flags().StringVarP(&c.Path, "path", "p", "~/.authority", "file backend path")
 	c.Cli.Flags().StringVarP(&c.Server, "server", "s", "", "address of vault server (AUTHORITY_VAULT_SERVER)")
 	c.Cli.Flags().StringVarP(&c.Token, "token", "t", "", "vault access token (AUTHORITY_VAULT_TOKEN)")
 }

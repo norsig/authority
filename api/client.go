@@ -25,6 +25,7 @@ type Certificate struct {
 // Client provides an API for creating, storing, retrieving and revoking x509
 // certificates.
 type Client struct {
+	Path   string
 	Server string
 	Token  string
 
@@ -32,24 +33,45 @@ type Client struct {
 	config  *config.Config
 }
 
-// Create a new Client for API operations given the provided server and token.
+// Create a new Client for local filesystem API operations given the provided path.
+func NewLocalClient(path string) (*Client, error) {
+	return newClientWithConfig("file", "", "", path, nil)
+}
+
+// Create a new Client for local filesystem API operations given the provided path.
+func NewLocalClientWithConfig(path string, config *config.Config) (*Client, error) {
+	return newClientWithConfig("file", "", "", path, config)
+}
+
+// Create a new Client for API operations given the provided Vault server and token.
 func NewClient(server, token string) (*Client, error) {
-	return NewClientWithConfig(server, token, nil)
+	return newClientWithConfig("vault", server, token, "", nil)
 }
 
 // Create a new Client for API operations given the provided server and token,
 // and config.Config.
 func NewClientWithConfig(server, token string, config *config.Config) (*Client, error) {
+	return newClientWithConfig("vault", server, token, "", config)
+}
+
+func newClientWithConfig(backendType, server, token, path string, config *config.Config) (*Client, error) {
 	c := &Client{
+		Path:   path,
 		Server: server,
 		Token:  token,
 		config: config,
 	}
 
-	c.backend = backend.Backend(&backend.Vault{
-		Server: c.Server,
-		Token:  c.Token,
-	})
+	if backendType == "vault" {
+		c.backend = backend.Backend(&backend.Vault{
+			Server: c.Server,
+			Token:  c.Token,
+		})
+	} else {
+		c.backend = backend.Backend(&backend.File{
+			Path: c.Path,
+		})
+	}
 
 	err := c.backend.Connect()
 	if err != nil {

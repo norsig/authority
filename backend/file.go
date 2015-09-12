@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"log"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -59,7 +58,6 @@ func (f *File) CreateTokenForCertificate(name string) (string, error) {
 func (f *File) GetConfig() (*config.Config, error) {
 	bytes, err := f.readFile(f.configPath())
 	if err != nil {
-		log.Println("error:", err)
 		return nil, err
 	}
 	c, err := config.OpenConfig(string(bytes))
@@ -73,7 +71,6 @@ func (f *File) GetConfig() (*config.Config, error) {
 func (f *File) GetCertificate(name string) (*x509.Certificate, error) {
 	bytes, err := f.readFile(f.certPath(name))
 	if err != nil {
-		log.Println("error:", err)
 		return nil, err
 	}
 	data, _ := pem.Decode([]byte(bytes))
@@ -112,7 +109,6 @@ func (f *File) GetNextSerialNumber() *big.Int {
 func (f *File) GetPrivateKey(name string) (*rsa.PrivateKey, error) {
 	bytes, err := f.readFile(f.keyPath(name))
 	if err != nil {
-		log.Println("error:", err)
 		return nil, err
 	}
 
@@ -202,7 +198,6 @@ func (f *File) readFile(path string) ([]byte, error) {
 func (f *File) writeFileRaw(path string, data []byte) error {
 	fileOut, err := os.Create(path)
 	if err != nil {
-		log.Println("failed to open file for writing", err)
 		return err
 	}
 	fileOut.Write(data)
@@ -213,7 +208,6 @@ func (f *File) writeFileRaw(path string, data []byte) error {
 func (f *File) writeFile(ttype string, path string, data []byte) error {
 	fileOut, err := os.Create(path)
 	if err != nil {
-		log.Println("failed to open file for writing", err)
 		return err
 	}
 	pem.Encode(fileOut, &pem.Block{

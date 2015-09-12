@@ -22,12 +22,17 @@ type Client struct {
 }
 
 // Create a new Client.
-func NewClient(server, token string) *Client {
+func NewClient(backend, server, token, path string) *Client {
 	var err error
 
 	c := &Client{}
 
-	c.api, err = api.NewClient(server, token)
+	if backend == "file" {
+		c.api, err = api.NewLocalClient(path)
+	} else {
+		c.api, err = api.NewClient(server, token)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
