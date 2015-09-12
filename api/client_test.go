@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -210,6 +211,53 @@ func TestApiClientWithChildCert(t *testing.T) {
 	if client2.Certificate.Issuer.CommonName != client.CommonName {
 		t.Fatalf("expected issuer name of %s but got %s instead", client.CommonName, client2.Certificate.Issuer.CommonName)
 	}
+
+	mutex.Unlock()
+	foo := <-done
+	fmt.Println("done", foo)
+}
+
+func TestCertSANs(t *testing.T) {
+	server, token, mutex, done := getVaultInfo(t)
+
+	api, err := NewClient(server, token, nil)
+	if err != nil {
+		t.Fatal("error initializing client %v", err)
+	}
+
+	c, err := api.GetConfig()
+	if c != nil || (err != authority.ErrConfigMissing) {
+		t.Fatal("config shouldn't exist")
+	}
+
+	api, err = NewClient(server, token, testConfig())
+	if err != nil {
+		t.Fatalf("error initializing client %v", err)
+	}
+
+	c, err = api.GetConfig()
+	if c == nil || (err != nil) {
+		t.Fatal("config should exist")
+	}
+
+	client, token, err := api.Generate("foo", "", []string{"foo.ovrclk.com"}, []net.IP{net.ParseIP("1.2.3.4")})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if client.CommonName != "foo" {
+		t.Fatal("got an unexpected cert name")
+	}
+
+	if len(client.Certificate.DNSNames) != 1 || client.Certificate.DNSNames[0] != "foo.ovrclk.com" {
+		t.Fatal("expected dns san of 'foo.ovrclk.com'")
+	}
+
+	if len(client.Certificate.IPAddresses) != 1 || !client.Certificate.IPAddresses[0].Equal(net.ParseIP("1.2.3.4")) {
+		t.Fatal("expected ip san of '1.2.3.4'")
+	}
+
+	fmt.Println("fuck yeah")
 
 	mutex.Unlock()
 	foo := <-done
