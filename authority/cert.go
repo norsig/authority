@@ -7,6 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -17,9 +18,11 @@ import (
 // Cert represents an x509 certificate, including it's private key, and
 // in the case of a root key, it's certificate revocation list.
 type Cert struct {
-	CommonName string
-	Backend    backend.Backend
-	ParentName string
+	CommonName  string
+	Backend     backend.Backend
+	ParentName  string
+	DNSNames    []string
+	IPAddresses []net.IP
 
 	certificate *x509.Certificate
 	privateKey  *rsa.PrivateKey

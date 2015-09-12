@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/ovrclk/authority/authority"
@@ -93,7 +94,7 @@ func (c *Client) SetConfig(config *config.Config) error {
 // If Generate is provided with a parent name, the certificate will be signed
 // by the certificate with the provided parent name if it exists. An empty
 // string will create a certificate signed by the root certificate.
-func (c *Client) Generate(name string, parent string) (*Certificate, string, error) {
+func (c *Client) Generate(name string, parent string, dnsNames []string, ipAddresses []net.IP) (*Certificate, string, error) {
 	var err error
 	var token string
 	var clientCert *Certificate
@@ -103,9 +104,11 @@ func (c *Client) Generate(name string, parent string) (*Certificate, string, err
 	}
 
 	cert := &authority.Cert{
-		CommonName: name,
-		Backend:    c.backend,
-		Config:     c.config,
+		CommonName:  name,
+		DNSNames:    dnsNames,
+		IPAddresses: ipAddresses,
+		Backend:     c.backend,
+		Config:      c.config,
 	}
 
 	if parent == "" {

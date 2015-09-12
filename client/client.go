@@ -131,7 +131,7 @@ func (c *Client) GetConfig() error {
 // It will also generate and display a backend access token with granular
 // permissions to access the certificate.
 func (c *Client) Generate(name string, parent string) error {
-	_, token, err := c.api.Generate(name, parent)
+	_, token, err := c.api.Generate(name, parent, nil, nil)
 	if err != nil {
 		return err
 	}
