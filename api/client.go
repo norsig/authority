@@ -32,9 +32,14 @@ type Client struct {
 	config  *config.Config
 }
 
+// Create a new Client for API operations given the provided server and token.
+func NewClient(server, token string) (*Client, error) {
+	return NewClientWithConfig(server, token, nil)
+}
+
 // Create a new Client for API operations given the provided server and token,
-// as well as an optional config.Config object.
-func NewClient(server, token string, config *config.Config) (*Client, error) {
+// and config.Config.
+func NewClientWithConfig(server, token string, config *config.Config) (*Client, error) {
 	c := &Client{
 		Server: server,
 		Token:  token,
@@ -90,11 +95,38 @@ func (c *Client) SetConfig(config *config.Config) error {
 //
 // If there is already an existing certificate with the same name, Generate
 // will return that certificate, as well as an error.
+func (c *Client) Generate(name string) (*Certificate, string, error) {
+	return c.GenerateWithOptions(name, "", nil, nil)
+}
+
+// GenerateWithParent creates and returns a certificate for the provided
+// common name.  It will also generate and return a backend access token with
+// granular permissions to access the certificate.
 //
-// If Generate is provided with a parent name, the certificate will be signed
-// by the certificate with the provided parent name if it exists. An empty
-// string will create a certificate signed by the root certificate.
-func (c *Client) Generate(name string, parent string, dnsNames []string, ipAddresses []net.IP) (*Certificate, string, error) {
+// If there is already an existing certificate with the same name, Generate
+// will return that certificate, as well as an error.
+//
+// If GenerateWithParent is provided with a parent name, the certificate will
+// be signed by the certificate with the provided parent name if it exists. An
+// empty string will create a certificate signed by the root certificate.
+func (c *Client) GenerateWithParent(name string, parent string) (*Certificate, string, error) {
+	return c.GenerateWithOptions(name, parent, nil, nil)
+}
+
+// GenerateWithOptions creates and returns a certificate for the provided
+// common name.  It will also generate and return a backend access token with
+// granular permissions to access the certificate.
+//
+// If there is already an existing certificate with the same name, Generate
+// will return that certificate, as well as an error.
+//
+// If GenerateWithOptions is provided with a parent name, the certificate will
+// be signed by the certificate with the provided parent name if it exists. An
+// empty string will create a certificate signed by the root certificate.
+//
+// If dnsNames or ipAddresses are provided and non-empty, the certificate will
+// created with corresponding Subject Alt Names.
+func (c *Client) GenerateWithOptions(name string, parent string, dnsNames []string, ipAddresses []net.IP) (*Certificate, string, error) {
 	var err error
 	var token string
 	var clientCert *Certificate

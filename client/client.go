@@ -26,7 +26,7 @@ func NewClient(server, token string) *Client {
 
 	c := &Client{}
 
-	c.api, err = api.NewClient(server, token, nil)
+	c.api, err = api.NewClient(server, token)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func (c *Client) GetConfig() error {
 // It will also generate and display a backend access token with granular
 // permissions to access the certificate.
 func (c *Client) Generate(name string, parent string) error {
-	_, token, err := c.api.Generate(name, parent, nil, nil)
+	_, token, err := c.api.GenerateWithParent(name, parent)
 	if err != nil {
 		return err
 	}
