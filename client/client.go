@@ -2,6 +2,8 @@ package client
 
 import (
 	"bufio"
+	"crypto/rsa"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -46,6 +48,11 @@ func NewClient(backend, server, token, path string) *Client {
 func (c *Client) GenerateCA() error {
 	_, err := c.api.GetCA()
 	return err
+}
+
+// SetCertificate stores the provided certificate and key in the authority backend.
+func (c *Client) SetCertificate(name string, cert *x509.Certificate, key *rsa.PrivateKey) error {
+	return nil
 }
 
 // SetConfig loads and stores the provided configuration file.

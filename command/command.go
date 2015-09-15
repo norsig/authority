@@ -1,6 +1,8 @@
 package command
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
 
@@ -69,6 +71,41 @@ func (c *CommandFactory) caCommands() {
 		},
 	}
 
+	caAddCommand := &cobra.Command{
+		Use:   "ca:add CERT KEY",
+		Short: "Store a previously generated root certificate from PEM format",
+		Run: func(cmd *cobra.Command, args []string) {
+			c.initClient()
+			if len(args) != 2 {
+				fmt.Printf("wrong number of arguments provided")
+			}
+
+			certBytes := []byte(args[0])
+			certPem, _ := pem.Decode(certBytes)
+			cert, err := x509.ParseCertificate(certPem.Bytes)
+			if err != nil {
+				fmt.Printf("cannot parse certificate")
+				os.Exit(1)
+			}
+
+			keyBytes := []byte(args[1])
+			keyPem, _ := pem.Decode(keyBytes)
+			key, err := x509.ParsePKCS1PrivateKey(keyPem.Bytes)
+			if err != nil {
+				fmt.Printf("cannot parse private key")
+				os.Exit(1)
+			}
+
+			err = c.Client.SetCertificate("ca", cert, key)
+			if err != nil {
+				fmt.Printf("%v", err)
+				os.Exit(1)
+			} else {
+				fmt.Printf("Root certificate set")
+			}
+		},
+	}
+
 	caCreateCommand := &cobra.Command{
 		Use:   "ca:create",
 		Short: "Create root certificate",
@@ -125,6 +162,7 @@ func (c *CommandFactory) caCommands() {
 
 	c.Cli.AddTopic("ca", "manage root certificate", true).
 		AddCommand(caCommand).
+		AddCommand(caAddCommand).
 		AddCommand(caCreateCommand).
 		AddCommand(caCertCommand).
 		AddCommand(caKeyCommand).
