@@ -12,6 +12,7 @@ import (
 	"github.com/ovrclk/authority/api"
 	"github.com/ovrclk/authority/authority"
 	"github.com/ovrclk/authority/config"
+	"github.com/ovrclk/authority/util"
 )
 
 // Client provides an command line client for creating, storing and retrieving x509
@@ -165,14 +166,14 @@ func (c *Client) Generate(name string, parent string, dnsNames string, ipAddress
 // GetCert displays the certificate for the provided common name, assuming that
 // it exists already.
 //
-// The certificate will be displayed in a  PEM encoded format.
+// The certificate will be displayed in a PEM encoded format.
 func (c *Client) GetCert(name string) error {
 	cert, err := c.api.Get(name)
 	if err != nil {
 		return err
 	}
 
-	certCert := authority.CertificatePEM(cert.Certificate)
+	certCert := util.GetPEMFromCertificate(cert.Certificate)
 	fmt.Println(certCert)
 	return nil
 }
@@ -187,7 +188,7 @@ func (c *Client) GetKey(name string) error {
 		return err
 	}
 
-	privateKey := authority.PrivateKeyPEM(cert.PrivateKey)
+	privateKey := util.GetPEMFromKey(cert.PrivateKey)
 	fmt.Println(privateKey)
 	return nil
 }
