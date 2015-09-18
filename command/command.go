@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/ovrclk/cli"
 	"github.com/spf13/cobra"
@@ -299,6 +300,10 @@ func (c *CommandFactory) initClient() {
 	if c.Backend != "vault" && c.Backend != "file" {
 		fmt.Println("unrecognized backend:", c.Backend)
 		os.Exit(1)
+	}
+
+	if c.Path == "~/.authority" {
+		c.Path = filepath.Join(os.Getenv("HOME"), ".authority")
 	}
 
 	c.Client = client.NewClient(c.Backend, c.Server, c.Token, c.Path)
