@@ -1,8 +1,6 @@
 package command
 
 import (
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ovrclk/authority/client"
+	"github.com/ovrclk/authority/util"
 	"github.com/ovrclk/authority/version"
 )
 
@@ -64,6 +63,33 @@ func (c *CommandFactory) versionCommands() {
 		AddCommand(versionCommand)
 }
 
+func (c *CommandFactory) addCertificate(name string, args []string) {
+	c.initClient()
+	if len(args) != 2 {
+		fmt.Printf("wrong number of arguments provided")
+	}
+
+	cert, err := util.GetCertificateFromPath(args[0])
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+
+	key, err := util.GetKeyFromPath(args[1])
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+
+	err = c.Client.SetCertificate(name, cert, key)
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	} else {
+		fmt.Printf("%s certificate set", name)
+	}
+}
+
 func (c *CommandFactory) caCommands() {
 	caCommand := &cobra.Command{
 		Use: "ca",
@@ -73,37 +99,10 @@ func (c *CommandFactory) caCommands() {
 	}
 
 	caAddCommand := &cobra.Command{
-		Use:   "ca:add CERT KEY",
-		Short: "Store a previously generated root certificate from PEM format",
+		Use:   "ca:add CERT_PATH KEY_PATH",
+		Short: "Store a previously generated root certificate from PEM formatted files",
 		Run: func(cmd *cobra.Command, args []string) {
-			c.initClient()
-			if len(args) != 2 {
-				fmt.Printf("wrong number of arguments provided")
-			}
-
-			certBytes := []byte(args[0])
-			certPem, _ := pem.Decode(certBytes)
-			cert, err := x509.ParseCertificate(certPem.Bytes)
-			if err != nil {
-				fmt.Printf("cannot parse certificate")
-				os.Exit(1)
-			}
-
-			keyBytes := []byte(args[1])
-			keyPem, _ := pem.Decode(keyBytes)
-			key, err := x509.ParsePKCS1PrivateKey(keyPem.Bytes)
-			if err != nil {
-				fmt.Printf("cannot parse private key")
-				os.Exit(1)
-			}
-
-			err = c.Client.SetCertificate("ca", cert, key)
-			if err != nil {
-				fmt.Printf("%v", err)
-				os.Exit(1)
-			} else {
-				fmt.Printf("Root certificate set")
-			}
+			c.addCertificate("ca", args)
 		},
 	}
 
@@ -182,6 +181,15 @@ func (c *CommandFactory) certCommands() {
 	var dnsNames string
 	var ipAddresses string
 
+	certAddCommand := &cobra.Command{
+		Use:   "cert:add <name> CERT_PATH KEY_PATH",
+		Short: "Store a previously generated certificate from PEM formatted files",
+		Run: func(cmd *cobra.Command, args []string) {
+			name, args := args[0], args[1:]
+			c.addCertificate(name, args)
+		},
+	}
+
 	certCreateCommand := &cobra.Command{
 		Use:   "cert:create <name>",
 		Short: "Create certificate",
@@ -253,6 +261,7 @@ func (c *CommandFactory) certCommands() {
 
 	c.Cli.AddTopic("cert", "manage client certificates", true).
 		AddCommand(certCommand).
+		AddCommand(certAddCommand).
 		AddCommand(certCreateCommand).
 		AddCommand(certCertCommand).
 		AddCommand(certKeyCommand).
