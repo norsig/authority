@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/pem"
 	"fmt"
 	"net"
 	"strings"
@@ -59,39 +58,6 @@ func GetCert(name string, backend backend.Backend, config *config.Config) (*Cert
 	}
 
 	return cert, nil
-}
-
-// CertificatePEM returns a PEM encoded string representation of the
-// provided x509.Certificate.
-func CertificatePEM(c *x509.Certificate) string {
-	pem := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: c.Raw,
-	})
-	return string(pem)
-}
-
-// PrivateKeyPEM returns a PEM encoded string representation of the
-// provided rsa.PrivateKey.
-func PrivateKeyPEM(k *rsa.PrivateKey) string {
-	pem := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(k),
-	})
-	return string(pem)
-}
-
-// CRLPEM returns a PEM encoded string representation of the provided
-// pkix.CertificateList.
-func CRLPEM(c *pkix.CertificateList) string {
-	if c == nil {
-		return ""
-	}
-	pem := pem.EncodeToMemory(&pem.Block{
-		Type:  "X509 CRL",
-		Bytes: c.TBSCertList.Raw,
-	})
-	return string(pem)
 }
 
 // Load the certificate and private key from the backend.
