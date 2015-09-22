@@ -6,7 +6,16 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 )
+
+func GetCertificateFromPath(path string) (*x509.Certificate, error) {
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("authority: unable to read file %v", err)
+	}
+	return GetCertificateFromPEMBytes(bytes)
+}
 
 func GetCertificateFromPEM(data string) (*x509.Certificate, error) {
 	return GetCertificateFromPEMBytes([]byte(data))
@@ -19,6 +28,14 @@ func GetCertificateFromPEMBytes(bytes []byte) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("authority: unable to parse certificate %v", err)
 	}
 	return cert, nil
+}
+
+func GetKeyFromPath(path string) (*rsa.PrivateKey, error) {
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("authority: unable to read file %v", err)
+	}
+	return GetKeyFromPEMBytes(bytes)
 }
 
 func GetKeyFromPEM(data string) (*rsa.PrivateKey, error) {

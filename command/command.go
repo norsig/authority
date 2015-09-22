@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ovrclk/authority/client"
+	"github.com/ovrclk/authority/util"
 	"github.com/ovrclk/authority/version"
 )
 
@@ -62,11 +63,46 @@ func (c *CommandFactory) versionCommands() {
 		AddCommand(versionCommand)
 }
 
+func (c *CommandFactory) addCertificate(name string, args []string) {
+	c.initClient()
+	if len(args) != 2 {
+		fmt.Printf("wrong number of arguments provided")
+	}
+
+	cert, err := util.GetCertificateFromPath(args[0])
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+
+	key, err := util.GetKeyFromPath(args[1])
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+
+	err = c.Client.SetCertificate(name, cert, key)
+	if err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	} else {
+		fmt.Printf("%s certificate set", name)
+	}
+}
+
 func (c *CommandFactory) caCommands() {
 	caCommand := &cobra.Command{
 		Use: "ca",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
+		},
+	}
+
+	caAddCommand := &cobra.Command{
+		Use:   "ca:add CERT_PATH KEY_PATH",
+		Short: "Store a previously generated root certificate from PEM formatted files",
+		Run: func(cmd *cobra.Command, args []string) {
+			c.addCertificate("ca", args)
 		},
 	}
 
@@ -126,6 +162,7 @@ func (c *CommandFactory) caCommands() {
 
 	c.Cli.AddTopic("ca", "manage root certificate", true).
 		AddCommand(caCommand).
+		AddCommand(caAddCommand).
 		AddCommand(caCreateCommand).
 		AddCommand(caCertCommand).
 		AddCommand(caKeyCommand).
@@ -143,6 +180,15 @@ func (c *CommandFactory) certCommands() {
 	var rootName string
 	var dnsNames string
 	var ipAddresses string
+
+	certAddCommand := &cobra.Command{
+		Use:   "cert:add <name> CERT_PATH KEY_PATH",
+		Short: "Store a previously generated certificate from PEM formatted files",
+		Run: func(cmd *cobra.Command, args []string) {
+			name, args := args[0], args[1:]
+			c.addCertificate(name, args)
+		},
+	}
 
 	certCreateCommand := &cobra.Command{
 		Use:   "cert:create <name>",
@@ -215,6 +261,7 @@ func (c *CommandFactory) certCommands() {
 
 	c.Cli.AddTopic("cert", "manage client certificates", true).
 		AddCommand(certCommand).
+		AddCommand(certAddCommand).
 		AddCommand(certCreateCommand).
 		AddCommand(certCertCommand).
 		AddCommand(certKeyCommand).

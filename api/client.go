@@ -98,6 +98,18 @@ func (c *Client) GetConfig() (*config.Config, error) {
 	return cfg, nil
 }
 
+// Stores a previously generated certificate and key in authority's backend.
+func (c *Client) SetCertificate(name string, cert *x509.Certificate, key *rsa.PrivateKey) error {
+	var err error
+	if err = c.backend.PutCertificate(name, cert); err != nil {
+		return err
+	}
+	if err = c.backend.PutPrivateKey(name, key); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Store authority configuration information in the backend.
 func (c *Client) SetConfig(config *config.Config) error {
 	c.config = config
