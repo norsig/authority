@@ -174,13 +174,16 @@ func (c *Client) Generate(name string, parent string, dnsNames string, ipAddress
 // it exists already.
 //
 // The certificate will be displayed in a PEM encoded format.
-func (c *Client) GetCert(name string) error {
+func (c *Client) GetCert(name string, format string) error {
 	cert, err := c.api.Get(name)
 	if err != nil {
 		return err
 	}
 
 	certCert := util.GetPEMFromCertificate(cert.Certificate)
+	if format == "base64" {
+		certCert = util.Base64String(certCert)
+	}
 	fmt.Println(certCert)
 	return nil
 }
@@ -189,13 +192,16 @@ func (c *Client) GetCert(name string) error {
 // it exists already.
 //
 // The certificate will be displayed in a  PEM encoded format.
-func (c *Client) GetKey(name string) error {
+func (c *Client) GetKey(name string, format string) error {
 	cert, err := c.api.Get(name)
 	if err != nil {
 		return err
 	}
 
 	privateKey := util.GetPEMFromKey(cert.PrivateKey)
+	if format == "base64" {
+		privateKey = util.Base64String(privateKey)
+	}
 	fmt.Println(privateKey)
 	return nil
 }

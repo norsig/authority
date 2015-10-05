@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
@@ -84,4 +85,8 @@ func GetPEMFromCRL(c *pkix.CertificateList) string {
 		Bytes: c.TBSCertList.Raw,
 	})
 	return string(bytes)
+}
+
+func Base64String(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
 }
