@@ -26,6 +26,7 @@ type CommandFactory struct {
 	Token    string
 	CertName string
 	RootName string
+	Output   string
 }
 
 func New() *cli.CLI {
@@ -126,26 +127,28 @@ func (c *CommandFactory) caCommands() {
 		Short: "Get root certificate private key",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
-			err := c.Client.GetKey("ca")
+			err := c.Client.GetKey("ca", c.Output)
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
 			}
 		},
 	}
+	c.bindOutputFlag(caKeyCommand)
 
 	caCertCommand := &cobra.Command{
 		Use:   "ca:cert",
 		Short: "Get root certificate",
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
-			err := c.Client.GetCert("ca")
+			err := c.Client.GetCert("ca", c.Output)
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
 			}
 		},
 	}
+	c.bindOutputFlag(caCertCommand)
 
 	caCRLCommand := &cobra.Command{
 		Use:   "ca:crl",
@@ -214,13 +217,14 @@ func (c *CommandFactory) certCommands() {
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
 			name := getCertificateName(args)
-			err := c.Client.GetKey(name)
+			err := c.Client.GetKey(name, c.Output)
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
 			}
 		},
 	}
+	c.bindOutputFlag(certKeyCommand)
 
 	certCertCommand := &cobra.Command{
 		Use:   "cert:cert <name>",
@@ -228,13 +232,14 @@ func (c *CommandFactory) certCommands() {
 		Run: func(cmd *cobra.Command, args []string) {
 			c.initClient()
 			name := getCertificateName(args)
-			err := c.Client.GetCert(name)
+			err := c.Client.GetCert(name, c.Output)
 			if err != nil {
 				fmt.Printf("%v", err)
 				os.Exit(1)
 			}
 		},
 	}
+	c.bindOutputFlag(certCertCommand)
 
 	certRevokeCommand := &cobra.Command{
 		Use:   "cert:revoke <name>",
@@ -375,4 +380,8 @@ func getCertificateName(args []string) string {
 		return ""
 	}
 	return args[0]
+}
+
+func (c *CommandFactory) bindOutputFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVarP(&c.Output, "output", "o", "text", "output format. allowed: text, base64")
 }
