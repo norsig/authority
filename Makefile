@@ -13,7 +13,10 @@ test: generate
 generate:
 	@godep go generate ./...
 
+sloc:
+	@find * -type dir -maxdepth 0 | grep -v Godeps | grep -v .git | grep -v third_party | tr "\\n" " " | xargs sloc
+
 clean:
 	@rm -rf bin/*
 
-.PHONY: default build generate test clean
+.PHONY: default build generate test clean sloc
